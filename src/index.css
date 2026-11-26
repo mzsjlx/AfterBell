@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+  --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --color-ivory: #FAF7F2;
+  --color-vellum: #F3EEE4;
+  --color-sand: #EFE8DC;
+  --color-navy: #1E2B4A;
+  --color-navy-deep: #151F38;
+  --color-gold: #B38B4D;
+  --color-gold-light: #D5B984;
+  --color-taupe: #7A7267;
+  --color-taupe-light: #9A9282;
+  --color-hairline: #E4DCCE;
+  --color-sage: #4B7056;
+  --color-amber-warm: #B87D3B;
+  --color-terracotta: #A94B44;
+  --color-olive-ink: #55503B;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    background-color: #FAF7F2;
+    color: #1E2B4A;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: #FAF7F2;
+    color: #1E2B4A;
+    overflow-x: hidden;
+  }
+}
+
+/* Editorial Typography & Signature Details from Reference Images */
+.font-editorial {
+  font-family: "Cormorant Garamond", "Noto Serif SC", "Songti SC", Georgia, serif;
+}
+
+.font-flourish {
+  font-family: "Cormorant Garamond", "Noto Serif SC", Georgia, serif;
+  font-style: italic;
+}
+
+.micro-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #7A7267;
+}
+
+.issue-numeral {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-weight: 500;
+  line-height: 1;
+  color: #1E2B4A;
+}
+
+/* Golden Arch Emblem Frame (Image 1 Signature) */
+.arch-frame {
+  border-radius: 999px 999px 6px 6px;
+  border: 1px solid rgba(179, 139, 77, 0.45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(250, 247, 242, 0.3) 100%);
+  position: relative;
+}
+
+.arch-frame::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px 999px 4px 4px;
+  border: 1px solid rgba(179, 139, 77, 0.18);
+  pointer-events: none;
+}
+
+/* Editorial Card Surface */
+.editorial-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #E4DCCE;
+  box-shadow: 0 8px 30px -16px rgba(30, 43, 74, 0.08);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+}
+
+.editorial-card:hover {
+  border-color: rgba(179, 139, 77, 0.55);
+  box-shadow: 0 14px 36px -14px rgba(30, 43, 74, 0.13);
+}
+
+/* Subtle Atmospheric Card Bottom Fade (Image 1) */
+.realm-card-fade {
+  background: linear-gradient(
+    to top,
+    #F6F1E8 0%,
+    rgba(246, 241, 232, 0.94) 34%,
+    rgba(246, 241, 232, 0.45) 58%,
+    rgba(246, 241, 232, 0) 100%
+  );
+}
+
+/* Editorial Vertical Midnight-Navy Band (Image 2 Signature) */
+.navy-editorial-band {
+  background: linear-gradient(180deg, #1E2B4A 0%, #24355B 52%, #19243F 100%);
+  color: #FAF7F2;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8CEBC;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B38B4D;
+}
+
+/* Safe area bottom padding for mobile floating nav */
+.pb-mobile-nav {
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes softFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-soft-in {
+  animation: softFadeUp 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Print styling for Teacher AI Reports */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #FFFFFF !important;
+  }
+}
