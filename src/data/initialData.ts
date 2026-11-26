@@ -7,7 +7,7 @@ export const REALM_META = {
     title: '原理之森',
     english: 'The Foundation Grove',
     tagline: '概念抽象、信息编码与概率直觉',
-    image: '/images/card-foundation.jpg',
+    image: './images/card-foundation.jpg',
     accent: '#4B7056',
   },
   practice: {
@@ -16,7 +16,7 @@ export const REALM_META = {
     title: '思辨峰峦',
     english: 'The Reasoning Peaks',
     tagline: '算法复杂度、搜索权衡与梯度优化',
-    image: '/images/card-practice.jpg',
+    image: './images/card-practice.jpg',
     accent: '#1E2B4A',
   },
   synthesis: {
@@ -25,7 +25,7 @@ export const REALM_META = {
     title: '综合高塔',
     english: 'The Synthesis Citadel',
     tagline: '大模型提示工程、对齐伦理与期末项目',
-    image: '/images/card-synthesis.jpg',
+    image: './images/card-synthesis.jpg',
     accent: '#B38B4D',
   },
 };

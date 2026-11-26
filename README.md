@@ -35,6 +35,20 @@ npm run dev
 npm run build
 ```
 
+## 一键公网部署（手机可直接打开）
+
+项目已适配相对路径（`base: './'`），支持零改造部署到以下任意免费平台：
+
+### 方式一：GitHub Pages（最省事，仓库内置工作流）
+1. 打开 GitHub 仓库 → **Settings** → **Pages**；
+2. 在 **Build and deployment → Source** 中选择 **GitHub Actions**；
+3. 等待约 1 分钟自动构建完成，即可通过公网地址访问：`https://mzsjlx.github.io/AfterBell/`。
+
+### 方式二：Vercel / Cloudflare Pages（国内访问更稳定）
+1. 登录 [Vercel](https://vercel.com) 或 [Cloudflare Pages](https://pages.cloudflare.com)；
+2. 导入 GitHub 仓库 `mzsjlx/AfterBell`（构建命令 `npm run build`，输出目录 `dist`，已内置 `vercel.json`）；
+3. 点击 Deploy 即可获得公网 HTTPS 链接，手机扫码或微信里点开即可直接使用。
+
 ## 技术栈
 
 - React 19 + TypeScript + Vite 6

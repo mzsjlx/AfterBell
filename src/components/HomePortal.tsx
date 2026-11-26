@@ -45,7 +45,7 @@ export const HomePortal: React.FC<HomePortalProps> = ({ state, onNavigate }) => 
           {/* Desktop Atmospheric Illustration Background */}
           <div className="relative min-h-[500px] sm:min-h-[560px] lg:min-h-[610px] flex items-center">
             <img
-              src="/images/hero-sanctuary.jpg"
+              src="./images/hero-sanctuary.jpg"
               alt="知境学苑建筑插画"
               className="absolute inset-0 w-full h-full object-cover object-right opacity-95 pointer-events-none select-none"
             />
