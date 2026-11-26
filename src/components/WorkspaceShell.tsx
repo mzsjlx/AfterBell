@@ -56,31 +56,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   return (
     <div className="relative min-h-screen lg:py-6 lg:px-6 flex flex-col items-center">
-      {/* Atmospheric Ambient Light Field behind the frosted glass shell */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
-        <div
-          className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full blur-[95px]"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.88) 0%, rgba(226,238,249,0.2) 70%, transparent 100%)' }}
-        />
-        <div
-          className="absolute top-[12%] right-[-8%] w-[560px] h-[560px] rounded-full blur-[110px]"
-          style={{ background: 'radial-gradient(circle, rgba(132,163,194,0.58) 0%, rgba(168,195,219,0.2) 65%, transparent 100%)' }}
-        />
-        <div
-          className="absolute bottom-[-14%] left-[12%] w-[540px] h-[540px] rounded-full blur-[110px]"
-          style={{ background: 'radial-gradient(circle, rgba(126,158,190,0.56) 0%, rgba(188,210,230,0.18) 68%, transparent 100%)' }}
-        />
-        <div
-          className="absolute bottom-[8%] right-[14%] w-[420px] h-[420px] rounded-full blur-[90px]"
-          style={{ background: 'radial-gradient(circle, rgba(244,249,255,0.72) 0%, rgba(206,223,239,0.15) 70%, transparent 100%)' }}
-        />
-      </div>
+      {/* Single GPU-promoted static gradient light field (zero live blur() shaders) */}
+      <div className="fixed inset-0 pointer-events-none ambient-field -z-10" aria-hidden="true" />
 
       {/* Main Frosted Application Window */}
       <div className="w-full max-w-[1380px] flex-1 lg:min-h-[calc(100vh-3rem)] app-shell lg:rounded-[26px] flex overflow-hidden">
-        {/* Subtle micro frosted-glass surface grain */}
-        <div className="absolute inset-0 pointer-events-none glass-grain z-0" aria-hidden="true" />
-
         {/* DESKTOP FAR-LEFT SLIM ICON RAIL (Exact Reference Image Layout) */}
         <aside className="relative z-10 hidden lg:flex flex-col items-center justify-between w-[64px] shrink-0 glass-rail py-3.5 no-print">
           <div className="flex flex-col items-center gap-2.5">
@@ -261,7 +241,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </section>
 
             {/* RIGHT MAIN WORKSPACE PANE */}
-            <main className="mist-pane rounded-[20px] p-4 sm:p-6 overflow-y-auto min-w-0">
+            <main className="mist-pane rounded-[20px] p-4 sm:p-6 overflow-y-auto overscroll-contain min-w-0">
               {children}
             </main>
           </div>
@@ -271,14 +251,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       {/* MOBILE PINNED FROSTED LIQUID-GLASS BOTTOM DOCK */}
       <nav
         aria-label="移动端视图导航"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 no-print px-2.5 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
-        style={{
-          background: 'linear-gradient(180deg, rgba(246,250,255,0.72) 0%, rgba(232,241,250,0.84) 100%)',
-          backdropFilter: 'blur(28px) saturate(165%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(165%)',
-          borderTop: '1px solid rgba(255,255,255,0.82)',
-          boxShadow: '0 -10px 30px -12px rgba(24,48,78,0.16), inset 0 1px 0 rgba(255,255,255,0.92)',
-        }}
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 no-print mobile-glass-dock px-2.5 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
       >
         <div
           className="grid gap-1"

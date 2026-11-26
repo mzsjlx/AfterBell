@@ -2,32 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
- * Dieter-Rams inspired minimal analog clock card (matching reference image)
+ * Dieter-Rams inspired minimal analog clock card
+ * Uses GPU-only CSS keyframes synced to real time (zero per-second React re-renders!)
  */
 export const AnalogClockWidget: React.FC = () => {
-  const [now, setNow] = useState(() => new Date());
+  const [mountTime] = useState(() => new Date());
+  const [minuteTick, setMinuteTick] = useState(() => new Date());
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(id);
+    const msToNextMin = (60 - new Date().getSeconds()) * 1000;
+    let intervalId: number | undefined;
+    const timeoutId = window.setTimeout(() => {
+      setMinuteTick(new Date());
+      intervalId = window.setInterval(() => setMinuteTick(new Date()), 60_000);
+    }, msToNextMin);
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
   }, []);
 
-  const seconds = now.getSeconds();
-  const minutes = now.getMinutes() + seconds / 60;
-  const hours = (now.getHours() % 12) + minutes / 60;
+  const initSeconds = mountTime.getSeconds() + mountTime.getMilliseconds() / 1000;
+  const initMinutes = mountTime.getMinutes() * 60 + initSeconds;
+  const initHours = (mountTime.getHours() % 12) * 3600 + initMinutes;
 
-  const secDeg = seconds * 6;
-  const minDeg = minutes * 6;
-  const hourDeg = hours * 30;
-
-  const hourNum = now.getHours();
-  const minStr = String(now.getMinutes()).padStart(2, '0');
+  const hourNum = minuteTick.getHours();
+  const minStr = String(minuteTick.getMinutes()).padStart(2, '0');
   const timeLabel = `${String(hourNum).padStart(2, '0')}:${minStr}`;
   const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  const dateLabel = `${weekNames[now.getDay()]} · ${now.getMonth() + 1}月${now.getDate()}日`;
+  const dateLabel = `${weekNames[minuteTick.getDay()]} · ${minuteTick.getMonth() + 1}月${minuteTick.getDate()}日`;
 
   return (
-    <div className="glacial-card rounded-[20px] p-4 flex items-center gap-4 select-none">
+    <div
+      className="glacial-card rounded-[20px] p-4 flex items-center gap-4 select-none"
+      style={{ contain: 'layout style paint' }}
+    >
       <svg viewBox="0 0 100 100" className="w-[86px] h-[86px] shrink-0" aria-label="实时时钟">
         {/* Subtle 12 tick marks */}
         {Array.from({ length: 12 }).map((_, i) => {
@@ -56,7 +65,8 @@ export const AnalogClockWidget: React.FC = () => {
           stroke="#141928"
           strokeWidth="2.4"
           strokeLinecap="round"
-          transform={`rotate(${hourDeg} 50 50)`}
+          className="clock-hand-hour"
+          style={{ animationDelay: `-${initHours}s` }}
         />
         {/* Minute hand */}
         <line
@@ -67,9 +77,10 @@ export const AnalogClockWidget: React.FC = () => {
           stroke="#141928"
           strokeWidth="1.6"
           strokeLinecap="round"
-          transform={`rotate(${minDeg} 50 50)`}
+          className="clock-hand-min"
+          style={{ animationDelay: `-${initMinutes}s` }}
         />
-        {/* Thin sweep second hand */}
+        {/* Thin continuous GPU-composited sweep second hand */}
         <line
           x1="50"
           y1="56"
@@ -78,7 +89,8 @@ export const AnalogClockWidget: React.FC = () => {
           stroke="#9AA6B8"
           strokeWidth="0.9"
           strokeLinecap="round"
-          transform={`rotate(${secDeg} 50 50)`}
+          className="clock-hand-sec"
+          style={{ animationDelay: `-${initSeconds}s` }}
         />
         <circle cx="50" cy="50" r="2.8" fill="#141928" />
       </svg>

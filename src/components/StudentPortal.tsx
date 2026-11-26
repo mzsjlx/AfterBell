@@ -205,10 +205,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               <span className="px-2.5 py-1 rounded-[9px] id-chip text-[#141928] font-medium">
                 预测 {student.predictedGrade}
               </span>
-              <span className="px-2.5 py-1 rounded-[9px] bg-white/40 border border-white/70 text-[#3F4D63] backdrop-blur-md">
+              <span className="px-2.5 py-1 rounded-[9px] bg-white/45 border border-white/75 text-[#3F4D63]">
                 连胜 {student.streakDays}d
               </span>
-              <span className="px-2.5 py-1 rounded-[9px] bg-white/40 border border-white/70 text-[#3F4D63] backdrop-blur-md">
+              <span className="px-2.5 py-1 rounded-[9px] bg-white/45 border border-white/75 text-[#3F4D63]">
                 {student.points} pt
               </span>
               <button
