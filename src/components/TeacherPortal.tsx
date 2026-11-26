@@ -1,21 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import {
-  AlertTriangle,
-  BellRing,
+  Bell,
   CheckCheck,
-  CheckCircle2,
   ClipboardCheck,
   Copy,
   FileText,
   Grid2x2,
+  GripVertical,
   Loader2,
   Lock,
   MessageSquareQuote,
   Printer,
   Send,
-  ShieldAlert,
   Sparkles,
-  UserCheck,
   Wand2,
   X,
 } from 'lucide-react';
@@ -25,9 +22,24 @@ import {
   generateTeacherReport,
 } from '../services/aiService';
 import { AppState, MicroQuest, StudentProfile, SubmissionStatus } from '../types';
-import { EditorialSectionHeading } from './EditorialDecor';
+import { GroupHeader, StatusDot } from './MinimalWidgets';
+import { NavItemDef } from './WorkspaceShell';
 
-export type TeacherTab = 'matrix' | 'review' | 'clusters' | 'studio' | 'reports';
+export type TeacherTab = 'review' | 'matrix' | 'clusters' | 'studio' | 'reports';
+
+export function getTeacherNavItems(state: AppState): NavItemDef[] {
+  const pending = state.submissions.filter((s) => s.status === 'pending_review').length;
+  const openQs = state.questions.filter((q) => !q.officialReply || q.studentConfirmed === 'still_confused').length;
+  const riskCount = state.students.filter((s) => s.riskLevel === 'high_risk').length;
+
+  return [
+    { key: 'review', label: '初审队列', short: '初审', count: pending, icon: <ClipboardCheck className="w-[17px] h-[17px] stroke-[1.6]" /> },
+    { key: 'matrix', label: '学情矩阵', short: '学情', count: riskCount, icon: <Grid2x2 className="w-[17px] h-[17px] stroke-[1.6]" /> },
+    { key: 'clusters', label: '共性答疑', short: '答疑', count: openQs, icon: <MessageSquareQuote className="w-[17px] h-[17px] stroke-[1.6]" /> },
+    { key: 'studio', label: '讲义出题', short: '出题', icon: <Wand2 className="w-[17px] h-[17px] stroke-[1.6]" /> },
+    { key: 'reports', label: '教研报告', short: '报告', icon: <FileText className="w-[17px] h-[17px] stroke-[1.6]" /> },
+  ];
+}
 
 interface TeacherPortalProps {
   state: AppState;
@@ -42,18 +54,9 @@ interface TeacherPortalProps {
   showToast: (msg: string) => void;
 }
 
-const TEACHER_TABS: { key: TeacherTab; label: string; short: string; icon: React.ReactNode }[] = [
-  { key: 'matrix', label: '学情热力矩阵', short: '学情', icon: <Grid2x2 className="w-4 h-4" /> },
-  { key: 'review', label: 'AI 作业初审台', short: '批改', icon: <ClipboardCheck className="w-4 h-4" /> },
-  { key: 'clusters', label: '共性同问聚类', short: '答疑', icon: <MessageSquareQuote className="w-4 h-4" /> },
-  { key: 'studio', label: '讲义一键出题', short: '出题', icon: <Wand2 className="w-4 h-4" /> },
-  { key: 'reports', label: '一键考核材料', short: '报告', icon: <FileText className="w-4 h-4" /> },
-];
-
 export const TeacherPortal: React.FC<TeacherPortalProps> = ({
   state,
   activeTab,
-  onChangeTab,
   onBatchApproveNormal,
   onUpdateSubmissionStatus,
   onPublishClusterReply,
@@ -64,19 +67,26 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
 }) => {
   const { students, knowledgePoints, submissions, questions, assignments, aiConfig } = state;
 
-  // Matrix filter & student inspector modal
-  const [riskFilter, setRiskFilter] = useState<'all' | 'risk' | 'safe'>('all');
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [newPrivateNote, setNewPrivateNote] = useState('');
-
   // Review state
+  const [openFlagged, setOpenFlagged] = useState(true);
+  const [openNormal, setOpenNormal] = useState(true);
+  const [openHandled, setOpenHandled] = useState(false);
+  const [expandedSubId, setExpandedSubId] = useState<string | null>(
+    submissions.find((s) => s.aiFlag !== 'normal' && s.status === 'pending_review')?.id || null
+  );
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
-  // Clusters reply state
+  // Matrix state
+  const [riskFilter, setRiskFilter] = useState<'all' | 'risk' | 'safe'>('all');
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState('');
+
+  // Clusters state
+  const [expandedQId, setExpandedQId] = useState<string | null>(questions[0]?.id || null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [draftingQId, setDraftingQId] = useState<string | null>(null);
 
-  // Studio AI quest generator state
+  // Studio state
   const [studioKpId, setStudioKpId] = useState(knowledgePoints[1]?.id || knowledgePoints[0].id);
   const [studioNotes, setStudioNotes] = useState('');
   const [generatingQuests, setGeneratingQuests] = useState(false);
@@ -86,6 +96,13 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
   const [reportType, setReportType] = useState<'mastery' | 'support' | 'grades'>('mastery');
   const [reportContent, setReportContent] = useState('');
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  const avgGrade = Math.round(students.reduce((s, st) => s + st.predictedGrade, 0) / students.length);
+  const highRiskCount = students.filter((s) => s.riskLevel === 'high_risk').length;
+
+  const flaggedPending = submissions.filter((s) => s.status === 'pending_review' && s.aiFlag !== 'normal');
+  const normalPending = submissions.filter((s) => s.status === 'pending_review' && s.aiFlag === 'normal');
+  const handledSubs = submissions.filter((s) => s.status !== 'pending_review');
 
   const selectedStudent: StudentProfile | null = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || null,
@@ -98,26 +115,16 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
     return students;
   }, [students, riskFilter]);
 
-  const kpAverages = useMemo(() => {
-    return knowledgePoints.map((kp) => ({
-      kp,
-      avg: Math.round(students.reduce((sum, st) => sum + (st.mastery[kp.id] ?? 0), 0) / students.length),
-    }));
-  }, [knowledgePoints, students]);
+  const kpAverages = useMemo(
+    () =>
+      knowledgePoints.map((kp) => ({
+        kp,
+        avg: Math.round(students.reduce((sum, st) => sum + (st.mastery[kp.id] ?? 0), 0) / students.length),
+      })),
+    [knowledgePoints, students]
+  );
 
-  const avgClassGrade = Math.round(students.reduce((s, st) => s + st.predictedGrade, 0) / students.length);
-  const highRiskCount = students.filter((s) => s.riskLevel === 'high_risk').length;
-  const pendingSubs = submissions.filter((s) => s.status === 'pending_review');
-  const normalPendingCount = pendingSubs.filter((s) => s.aiFlag === 'normal').length;
-  const openQuestions = questions.filter((q) => !q.officialReply || q.studentConfirmed === 'still_confused');
-
-  const cellStyle = (score: number) => {
-    if (score >= 82) return 'bg-[#4B7056]/16 text-[#2C4B36] border-[#4B7056]/25';
-    if (score >= 65) return 'bg-[#B87D3B]/16 text-[#7D4F1B] border-[#B87D3B]/25';
-    return 'bg-[#A94B44]/16 text-[#852E28] border-[#A94B44]/30 font-semibold';
-  };
-
-  const handleAIDraftReply = async (qId: string) => {
+  const handleDraftReply = async (qId: string) => {
     const q = questions.find((item) => item.id === qId);
     if (!q) return;
     setDraftingQId(qId);
@@ -144,197 +151,240 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
     setGeneratingReport(false);
   };
 
-  return (
-    <>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-mobile-nav md:pb-16 animate-soft-in">
-      {/* Top Compact AI Relief Summary Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <div className="editorial-card rounded-2xl p-4 bg-[#FAF7F2]">
-          <div className="micro-label">CLASS PULSE · 全班均势</div>
-          <div className="mt-1.5 flex items-baseline justify-between">
-            <span className="issue-numeral text-3xl font-semibold text-[#1E2B4A]">{avgClassGrade}</span>
-            <span className="text-xs text-[#4B7056] font-medium">
-              达标 {students.filter((s) => s.predictedGrade >= 60).length}/{students.length}
+  const renderSubmissionRow = (sub: (typeof submissions)[number]) => {
+    const asg = assignments.find((a) => a.id === sub.assignmentId);
+    const expanded = expandedSubId === sub.id;
+    const isFlagged = sub.aiFlag !== 'normal';
+
+    return (
+      <div key={sub.id} className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setExpandedSubId(expanded ? null : sub.id)}
+          className={`w-full px-3 py-2.5 rounded-[12px] flex items-center justify-between gap-3 text-left transition-all cursor-pointer ${
+            expanded ? 'hatched-row' : 'glacial-card-subtle'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <GripVertical className="w-3.5 h-3.5 text-[#9AA6B8] shrink-0" />
+            <span className="id-chip px-2 py-0.5 rounded-[7px] text-[11px] font-medium inline-flex items-center gap-1.5 shrink-0">
+              <StatusDot tone={isFlagged ? 'risk' : 'ok'} />
+              <span>AI {sub.aiScore}</span>
             </span>
+            <span className="text-[13px] font-medium text-[#141928] shrink-0">{sub.studentName}</span>
+            <span className="text-[12px] text-[#6B7689] truncate">{asg?.code} · {sub.aiSummary}</span>
           </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onChangeTab('review')}
-          className="editorial-card rounded-2xl p-4 bg-[#FAF7F2] text-left cursor-pointer"
-        >
-          <div className="micro-label">AI PRE-GRADED · 待复核初审</div>
-          <div className="mt-1.5 flex items-baseline justify-between">
-            <span className="issue-numeral text-3xl font-semibold text-[#B38B4D]">{pendingSubs.length}</span>
-            <span className="text-xs text-[#7A7267]">其中 {normalPendingCount} 份可一键放行</span>
+          <div className="flex items-center gap-2 text-[11px] text-[#7A869A] shrink-0">
+            <span className="hidden sm:inline">{sub.verificationPassed ? '已验真' : '未验真'}</span>
+            <span>{sub.submittedAt}</span>
           </div>
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            onChangeTab('matrix');
-            setRiskFilter('risk');
-          }}
-          className="editorial-card rounded-2xl p-4 bg-[#FAF7F2] text-left cursor-pointer"
-        >
-          <div className="micro-label">EARLY ALERT · 需关注学生</div>
-          <div className="mt-1.5 flex items-baseline justify-between">
-            <span className="issue-numeral text-3xl font-semibold text-[#A94B44]">{highRiskCount}</span>
-            <span className="text-xs text-[#8D3832]">红灯预警 · 点此聚焦</span>
-          </div>
-        </button>
-
-        <div className="rounded-2xl p-4 navy-editorial-band flex flex-col justify-between">
-          <div className="text-[10px] tracking-[0.2em] uppercase text-[#D5B984]">AI TIME SAVED · 本周减负</div>
-          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-            <span className="font-editorial text-3xl font-semibold text-[#FAF7F2]">78%</span>
-            <span className="text-[11px] sm:text-xs text-[#FAF7F2]/80">重复答疑与初批已托管</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Sub-Nav Pill Bar */}
-      <div className="hidden md:flex items-center justify-between gap-4 mb-7 pb-4 border-b border-[#E4DCCE]">
-        <div className="flex items-center gap-2">
-          {TEACHER_TABS.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onChangeTab(tab.key)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all cursor-pointer ${
-                  active
-                    ? 'bg-[#1E2B4A] text-[#FAF7F2] font-medium shadow-xs'
-                    : 'bg-[#F3EEE4] text-[#686055] hover:bg-[#EAE1D0] hover:text-[#1E2B4A]'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-                {tab.key === 'review' && pendingSubs.length > 0 && (
-                  <span className="px-1.5 rounded-full text-[10px] bg-[#B38B4D] text-[#FAF7F2]">
-                    {pendingSubs.length}
-                  </span>
-                )}
-                {tab.key === 'clusters' && openQuestions.length > 0 && (
-                  <span className="px-1.5 rounded-full text-[10px] bg-[#A94B44] text-[#FAF7F2]">
-                    {openQuestions.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="text-xs text-[#7A7267]">主讲：{state.opsConfig.teacherName}</div>
-      </div>
-
-      {/* TAB 1: KNOWLEDGE MATRIX + STUDENT PANORAMA INSPECTOR */}
-      {activeTab === 'matrix' && (
-        <div className="space-y-5">
-          <EditorialSectionHeading
-            align="left"
-            english="MASTERY HEATMAP"
-            title="全班「知识点 × 学生」学情透视矩阵"
-            subtitle="竖看哪列偏红知全班难点，横看哪行偏红定帮扶名单；点击任意学生查看私密备注与 AI 诊断。"
-            action={
-              <div className="flex gap-1.5">
-                {(
-                  [
-                    { key: 'all', label: `全部 (${students.length})` },
-                    { key: 'risk', label: `预警与观察 (${students.filter((s) => s.riskLevel !== 'safe').length})` },
-                    { key: 'safe', label: '稳健达标' },
-                  ] as const
-                ).map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    onClick={() => setRiskFilter(f.key)}
-                    className={`px-3 py-1.5 rounded-full text-xs cursor-pointer transition-colors ${
-                      riskFilter === f.key
-                        ? 'bg-[#1E2B4A] text-[#FAF7F2]'
-                        : 'bg-[#F3EEE4] text-[#6E665C] hover:bg-[#E7DDC9]'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+        {expanded && (
+          <div className="glacial-card rounded-[16px] p-4 space-y-3 text-[12.5px]">
+            {isFlagged && (
+              <div className="px-3 py-2 rounded-[9px] bg-[#B84A4A]/[0.07] text-[#8E3939] text-[12px]">
+                {sub.aiFlagReason}
               </div>
-            }
-          />
+            )}
+            <div className="p-3 rounded-[11px] bg-[#F1F5F9] text-[#222B3D] leading-relaxed">{sub.content}</div>
+            <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-[#4D596E]">
+              <span>亮点：{sub.aiStrengths.join('；')}</span>
+              <span>待补：{sub.aiGaps.join('；')}</span>
+            </div>
 
-          {/* Desktop Heatmap Table */}
-          <div className="hidden md:block editorial-card rounded-3xl overflow-hidden bg-[#FAF7F2]">
+            {sub.status === 'pending_review' && (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-slate-900/[0.06]">
+                <input
+                  type="text"
+                  value={commentDrafts[sub.id] || ''}
+                  onChange={(e) => setCommentDrafts((p) => ({ ...p, [sub.id]: e.target.value }))}
+                  placeholder="选填评语…"
+                  className="flex-1 rounded-[9px] bg-[#F2F6FA] border border-slate-900/[0.08] px-3 py-1.5 text-[12.5px] outline-none focus:bg-white"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSubmissionStatus(sub.id, 'approved', commentDrafts[sub.id]);
+                      setExpandedSubId(null);
+                      showToast(`已通过 ${sub.studentName}`);
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-[9px] bg-[#141928] text-white text-[12px] font-medium cursor-pointer"
+                  >
+                    通过
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSubmissionStatus(sub.id, 'needs_revision', commentDrafts[sub.id] || '请补充个人实验数据');
+                      setExpandedSubId(null);
+                      showToast(`已退回 ${sub.studentName}`);
+                    }}
+                    className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-[9px] bg-[#E5EDF4] text-[#2C3649] text-[12px] font-medium hover:bg-[#DAE4EE] cursor-pointer"
+                  >
+                    退回
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Compact Whisper-Quiet KPI Strip (Always visible, zero noise) */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        {[
+          { label: '班均', val: `${avgGrade}` },
+          { label: '待审', val: `${flaggedPending.length + normalPending.length}` },
+          { label: '预警', val: `${highRiskCount}`, risk: highRiskCount > 0 },
+          { label: 'AI 减负', val: '78%' },
+        ].map((item) => (
+          <div key={item.label} className="glacial-card-subtle rounded-[13px] px-3 py-2.5">
+            <div className="text-[11px] text-[#7A869A]">{item.label}</div>
+            <div
+              className={`text-[19px] sm:text-[21px] font-semibold tracking-tight tabular mt-0.5 ${
+                item.risk ? 'text-[#A23E3E]' : 'text-[#141928]'
+              }`}
+            >
+              {item.val}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* TAB 1: REVIEW QUEUE */}
+      {activeTab === 'review' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">初审队列</h1>
+            <button
+              type="button"
+              disabled={normalPending.length === 0}
+              onClick={() => {
+                const n = onBatchApproveNormal();
+                showToast(`已一键通过 ${n} 份常规作业`);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-[#141928] disabled:bg-[#C6D1DE] text-white text-[12px] font-medium cursor-pointer disabled:cursor-not-allowed"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              <span>批量通过常规项 ({normalPending.length})</span>
+            </button>
+          </div>
+
+          <div>
+            <GroupHeader title="异常待核" count={flaggedPending.length} open={openFlagged} onToggle={() => setOpenFlagged((v) => !v)} />
+            {openFlagged && (
+              <div className="space-y-2 mt-1">
+                {flaggedPending.length === 0 ? (
+                  <div className="text-[12px] text-[#7A869A] px-2 py-3">无异常作业</div>
+                ) : (
+                  flaggedPending.map(renderSubmissionRow)
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <GroupHeader title="常规待审" count={normalPending.length} open={openNormal} onToggle={() => setOpenNormal((v) => !v)} />
+            {openNormal && (
+              <div className="space-y-2 mt-1">
+                {normalPending.length === 0 ? (
+                  <div className="text-[12px] text-[#7A869A] px-2 py-3">全部常规项已放行</div>
+                ) : (
+                  normalPending.map(renderSubmissionRow)
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <GroupHeader title="已处理" count={handledSubs.length} open={openHandled} onToggle={() => setOpenHandled((v) => !v)} />
+            {openHandled && <div className="space-y-2 mt-1">{handledSubs.map(renderSubmissionRow)}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: MASTERY MATRIX */}
+      {activeTab === 'matrix' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">学情矩阵</h1>
+            <div className="inline-flex p-0.5 rounded-[9px] bg-[#D9E2EC]/80">
+              {(
+                [
+                  { key: 'all', label: `全部 ${students.length}` },
+                  { key: 'risk', label: `预警 ${students.filter((s) => s.riskLevel !== 'safe').length}` },
+                  { key: 'safe', label: '稳健' },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setRiskFilter(f.key)}
+                  className={`px-2.5 py-1 rounded-[7px] text-[12px] cursor-pointer ${
+                    riskFilter === f.key ? 'bg-white text-[#141928] font-medium shadow-2xs' : 'text-[#627084]'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Swiss Tabular Matrix */}
+          <div className="hidden md:block glacial-card rounded-[16px] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#F3EEE4]/90 border-b border-[#E4DCCE] text-xs text-[#5E574D]">
-                    <th className="py-3.5 px-4 font-semibold min-w-[180px]">学生 / 状态</th>
+                  <tr className="border-b border-slate-900/[0.06] text-[11px] text-[#7A869A]">
+                    <th className="py-3 px-4 font-medium">学生</th>
                     {kpAverages.map(({ kp, avg }) => (
-                      <th key={kp.id} className="py-3 px-2.5 text-center min-w-[105px]">
-                        <div className="font-editorial text-sm font-semibold text-[#1E2B4A]">
-                          {kp.code} {kp.title.slice(0, 4)}
-                        </div>
-                        <div
-                          className={`text-[10px] mt-0.5 font-medium ${
-                            avg < 70 ? 'text-[#A94B44]' : avg >= 80 ? 'text-[#4B7056]' : 'text-[#936027]'
-                          }`}
-                        >
-                          班均 {avg}%
-                        </div>
+                      <th key={kp.id} className="py-3 px-2 text-center font-medium tabular">
+                        <div className="text-[#1C2436]">{kp.code}</div>
+                        <div className={avg < 70 ? 'text-[#A23E3E]' : 'text-[#8B97AA]'}>{avg}%</div>
                       </th>
                     ))}
-                    <th className="py-3.5 px-4 text-right min-w-[120px]">预测 / 操作</th>
+                    <th className="py-3 px-4 text-right font-medium">预测</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#EDE6D9] text-sm">
+                <tbody className="divide-y divide-slate-900/[0.05] text-[13px] tabular">
                   {filteredStudents.map((st) => (
                     <tr
                       key={st.id}
                       onClick={() => setSelectedStudentId(st.id)}
-                      className="hover:bg-[#F5EFE3]/80 transition-colors cursor-pointer"
+                      className="hover:bg-[#EDF2F7]/80 transition-colors cursor-pointer"
                     >
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                              st.riskLevel === 'high_risk'
-                                ? 'bg-[#A94B44]'
-                                : st.riskLevel === 'watch'
-                                ? 'bg-[#B87D3B]'
-                                : 'bg-[#4B7056]'
-                            }`}
-                          />
-                          <div>
-                            <div className="font-medium text-[#1E2B4A] flex items-center gap-1.5">
-                              <span>{st.name}</span>
-                              {st.privateNotes.length > 0 && (
-                                <Lock className="w-3 h-3 text-[#B38B4D]" aria-label="含私密备注" />
-                              )}
-                            </div>
-                            <div className="text-[11px] text-[#7A7267]">{st.major}</div>
-                          </div>
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <StatusDot tone={st.riskLevel === 'high_risk' ? 'risk' : st.riskLevel === 'watch' ? 'warn' : 'ok'} />
+                          <span className="font-medium text-[#141928]">{st.name}</span>
+                          {st.privateNotes.length > 0 && <Lock className="w-3 h-3 text-[#8C97AA]" />}
                         </div>
                       </td>
                       {knowledgePoints.map((kp) => {
-                        const score = st.mastery[kp.id] ?? 0;
+                        const v = st.mastery[kp.id] ?? 0;
                         return (
-                          <td key={kp.id} className="py-2.5 px-2 text-center">
+                          <td key={kp.id} className="py-2 px-1.5 text-center">
                             <span
-                              className={`inline-block w-14 py-1 rounded-xl border text-xs ${cellStyle(score)}`}
+                              className={`inline-block w-11 py-0.5 rounded-[6px] text-[12px] ${
+                                v < 60
+                                  ? 'bg-[#B84A4A]/12 text-[#8E3535] font-medium'
+                                  : v < 75
+                                  ? 'bg-[#B47B2B]/10 text-[#7E541A]'
+                                  : 'text-[#39455A]'
+                              }`}
                             >
-                              {score}%
+                              {v}
                             </span>
                           </td>
                         );
                       })}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="font-editorial text-lg font-semibold text-[#1E2B4A]">
-                          {st.predictedGrade} 分
-                        </div>
-                        <div className="text-[11px] text-[#B38B4D]">查看全景档案 →</div>
-                      </td>
+                      <td className="py-2.5 px-4 text-right font-semibold text-[#141928]">{st.predictedGrade}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -342,300 +392,103 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
             </div>
           </div>
 
-          {/* Mobile Responsive Student Insight Cards (No Squished Tables on Phones!) */}
-          <div className="md:hidden space-y-3">
+          {/* Mobile Minimal Student Rows */}
+          <div className="md:hidden space-y-2">
             {filteredStudents.map((st) => {
-              const lowestKp = [...knowledgePoints].sort(
-                (a, b) => (st.mastery[a.id] ?? 0) - (st.mastery[b.id] ?? 0)
-              )[0];
+              const lowKp = [...knowledgePoints].sort((a, b) => (st.mastery[a.id] ?? 0) - (st.mastery[b.id] ?? 0))[0];
               return (
-                <div
+                <button
                   key={st.id}
+                  type="button"
                   onClick={() => setSelectedStudentId(st.id)}
-                  className="editorial-card rounded-2xl p-4 space-y-2.5 cursor-pointer"
+                  className="w-full glacial-card-subtle rounded-[12px] px-3.5 py-3 text-left flex items-center justify-between gap-3 cursor-pointer"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full ${
-                          st.riskLevel === 'high_risk'
-                            ? 'bg-[#A94B44]'
-                            : st.riskLevel === 'watch'
-                            ? 'bg-[#B87D3B]'
-                            : 'bg-[#4B7056]'
-                        }`}
-                      />
-                      <span className="font-editorial text-lg font-semibold text-[#1E2B4A]">{st.name}</span>
-                      <span className="text-[11px] text-[#7A7267]">{st.major}</span>
+                      <StatusDot tone={st.riskLevel === 'high_risk' ? 'risk' : st.riskLevel === 'watch' ? 'warn' : 'ok'} />
+                      <span className="text-[13.5px] font-medium text-[#141928]">{st.name}</span>
+                      <span className="text-[11px] text-[#7A869A]">{st.major}</span>
                     </div>
-                    <span className="font-editorial text-xl font-semibold text-[#1E2B4A]">
-                      {st.predictedGrade} 分
-                    </span>
+                    <div className="text-[11.5px] text-[#6B7689] mt-0.5 truncate">
+                      薄弱 {lowKp.code} ({st.mastery[lowKp.id]}%) · {st.aiDiagnosis}
+                    </div>
                   </div>
-                  <p className="text-xs text-[#5E574D] leading-relaxed">{st.aiDiagnosis}</p>
-                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#EFE8DC]">
-                    <span className="text-[#8D3832]">
-                      最弱：{lowestKp.code} {lowestKp.title} ({st.mastery[lowestKp.id]}%)
-                    </span>
-                    <span className="text-[#B38B4D] font-medium">点开档案与备注 →</span>
-                  </div>
-                </div>
+                  <span className="text-[15px] font-semibold text-[#141928] tabular shrink-0">{st.predictedGrade}</span>
+                </button>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* TAB 2: AI BATCH ASSIGNMENT REVIEW WORKBENCH */}
-      {activeTab === 'review' && (
-        <div className="space-y-5">
-          <EditorialSectionHeading
-            align="left"
-            english="AI PRE-REVIEW BENCH"
-            title="AI 作业初审与异常拦截台"
-            subtitle="正常且过 10 秒验真的作业，老师一键批量放行；精力只留给 AI 标黄的异常卷。"
-            action={
-              <button
-                type="button"
-                disabled={normalPendingCount === 0}
-                onClick={() => {
-                  const count = onBatchApproveNormal();
-                  showToast(`已一键放行 ${count} 份 AI 正常且通过验真的作业！省下约 ${count * 6} 分钟`);
-                }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#1E2B4A] disabled:bg-[#CFC7B9] text-[#FAF7F2] text-xs sm:text-sm font-medium shadow-xs hover:bg-[#293B63] transition-colors cursor-pointer disabled:cursor-not-allowed"
-              >
-                <CheckCheck className="w-4 h-4 text-[#D5B984]" />
-                <span>一键批量放行全部 AI 正常项（{normalPendingCount} 份）</span>
-              </button>
-            }
-          />
-
-          <div className="space-y-4">
-            {submissions.map((sub) => {
-              const asg = assignments.find((a) => a.id === sub.assignmentId);
-              const isFlagged = sub.aiFlag !== 'normal';
-
-              return (
-                <div
-                  key={sub.id}
-                  className={`editorial-card rounded-3xl p-5 sm:p-6 space-y-4 ${
-                    isFlagged && sub.status === 'pending_review'
-                      ? 'border-[#A94B44]/50 bg-[#FDF8F6]'
-                      : 'bg-[#FAF7F2]'
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-editorial text-xl font-semibold text-[#1E2B4A]">
-                          {sub.studentName}
-                        </span>
-                        <span className="text-xs text-[#7A7267]">
-                          {sub.studentNo} · {sub.submittedAt}
-                        </span>
-                        <span
-                          className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium ${
-                            sub.verificationPassed
-                              ? 'bg-[#4B7056]/14 text-[#34543E]'
-                              : 'bg-[#A94B44]/12 text-[#87322C]'
-                          }`}
-                        >
-                          {sub.verificationPassed ? '✓ 10秒验真已过' : '⚠ 未过10秒验真'}
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#7A7267] mt-0.5">{asg?.title}</div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase tracking-widest text-[#7A7267]">AI 建议分</div>
-                        <div className="font-editorial text-2xl font-semibold text-[#1E2B4A]">
-                          {sub.aiScore} <span className="text-xs font-sans font-normal">/100</span>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          sub.status === 'approved'
-                            ? 'bg-[#4B7056] text-white'
-                            : sub.status === 'needs_revision'
-                            ? 'bg-[#B87D3B] text-white'
-                            : 'bg-[#EFE8DC] text-[#1E2B4A]'
-                        }`}
-                      >
-                        {sub.status === 'approved'
-                          ? '已确认通过'
-                          : sub.status === 'needs_revision'
-                          ? '已退回补充'
-                          : '待教师确认'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isFlagged && (
-                    <div className="rounded-2xl p-3 bg-[#A94B44]/10 border border-[#A94B44]/30 text-xs text-[#832E28] flex items-start gap-2">
-                      <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                      <div>
-                        <strong>AI 风险拦截：</strong>
-                        {sub.aiFlagReason}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    <div className="lg:col-span-7 bg-white rounded-2xl p-4 border border-[#E4DCCE]">
-                      <div className="text-[11px] uppercase tracking-widest text-[#7A7267] mb-1.5">
-                        学生提交原文
-                      </div>
-                      <p className="text-xs sm:text-sm text-[#2F2B26] leading-relaxed">{sub.content}</p>
-                    </div>
-
-                    <div className="lg:col-span-5 bg-[#F4EFE5] rounded-2xl p-4 border border-[#E4DCCE] text-xs space-y-2">
-                      <div className="font-semibold text-[#1E2B4A] flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#B38B4D]" />
-                        <span>AI 按评分标准拆解摘要</span>
-                      </div>
-                      <p className="text-[#4F4840] leading-relaxed">{sub.aiSummary}</p>
-                      <div className="text-[#34543E]">✓ 亮点：{sub.aiStrengths.join('；')}</div>
-                      <div className="text-[#8B5921]">△ 不足：{sub.aiGaps.join('；')}</div>
-                    </div>
-                  </div>
-
-                  {sub.status === 'pending_review' && (
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-[#EFE8DC]">
-                      <input
-                        type="text"
-                        value={commentDrafts[sub.id] || ''}
-                        onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [sub.id]: e.target.value }))}
-                        placeholder="选填一句教师评语（不填将直接附带 AI 摘要发给学生）…"
-                        className="flex-1 rounded-full bg-white border border-[#DFD5C5] px-4 py-2 text-xs sm:text-sm outline-none focus:border-[#1E2B4A]"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onUpdateSubmissionStatus(sub.id, 'approved', commentDrafts[sub.id]);
-                            showToast(`已通过 ${sub.studentName} 的作业（${sub.aiScore}分）`);
-                          }}
-                          className="flex-1 sm:flex-none px-4 py-2 rounded-full bg-[#4B7056] text-white text-xs sm:text-sm font-medium hover:bg-[#3E5E47] cursor-pointer"
-                        >
-                          采纳 AI 分通过
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onUpdateSubmissionStatus(
-                              sub.id,
-                              'needs_revision',
-                              commentDrafts[sub.id] || '请结合自己真实实验数据补充细节后重交'
-                            );
-                            showToast(`已退回 ${sub.studentName} 并自动附带 AI 修改指南`);
-                          }}
-                          className="flex-1 sm:flex-none px-4 py-2 rounded-full border border-[#A94B44] text-[#8D3832] text-xs sm:text-sm font-medium hover:bg-[#A94B44]/10 cursor-pointer"
-                        >
-                          退回补充细节
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: AI QUESTION CLUSTERS (REPLY ONCE -> BROADCAST TO ALL) */}
+      {/* TAB 3: QUESTION CLUSTERS */}
       {activeTab === 'clusters' && (
-        <div className="space-y-5">
-          <EditorialSectionHeading
-            align="left"
-            english="AI QUESTION CLUSTERS"
-            title="课下共性同问聚类台"
-            subtitle="AI 把零散私信合并为高热同问主题；点一下拟定初稿，写一次即可精准推送全部同问学生。"
-          />
+        <div className="space-y-3">
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">共性答疑</h1>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {[...questions]
               .sort((a, b) => b.upvotes - a.upvotes)
               .map((q) => {
-                const kp = knowledgePoints.find((k) => k.id === q.kpId);
+                const expanded = expandedQId === q.id;
                 const draftVal = replyDrafts[q.id] ?? q.officialReply ?? '';
-                const isConfusedBack = q.studentConfirmed === 'still_confused';
-
+                const confused = q.studentConfirmed === 'still_confused';
                 return (
-                  <div
-                    key={q.id}
-                    className={`editorial-card rounded-3xl p-5 sm:p-6 space-y-3.5 ${
-                      isConfusedBack ? 'border-[#A94B44]/60 bg-[#FDF8F6]' : ''
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs bg-[#1E2B4A] text-[#FAF7F2] font-medium">
-                          {q.upvotes} 人同问
+                  <div key={q.id} className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedQId(expanded ? null : q.id)}
+                      className={`w-full px-3 py-2.5 rounded-[12px] flex items-center justify-between gap-3 text-left cursor-pointer ${
+                        expanded ? 'hatched-row' : 'glacial-card-subtle'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="id-chip px-2 py-0.5 rounded-[7px] text-[11px] font-medium inline-flex items-center gap-1 shrink-0">
+                          <StatusDot tone={confused ? 'risk' : q.officialReply ? 'ok' : 'warn'} />
+                          <span>{q.upvotes} 同问</span>
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs bg-[#EFE8DC] text-[#1E2B4A]">
-                          {kp?.code} {kp?.title}
-                        </span>
-                        {isConfusedBack && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs bg-[#A94B44] text-white font-medium">
-                            有学生点“还是有点懵”已回流
-                          </span>
-                        )}
+                        <span className="text-[13px] font-medium text-[#141928] truncate">{q.clusterTitle}</span>
                       </div>
-                      <span className="text-xs text-[#7A7267]">
-                        {q.officialReply ? '✓ 已统一群发回复' : '待统一回复'}
+                      <span className="text-[11px] text-[#7A869A] shrink-0">
+                        {confused ? '已回流' : q.officialReply ? '已群发' : '待答'}
                       </span>
-                    </div>
+                    </button>
 
-                    <div>
-                      <h4 className="font-editorial text-xl font-semibold text-[#1E2B4A]">{q.clusterTitle}</h4>
-                      <p className="text-xs sm:text-sm text-[#5E574D] mt-1 leading-relaxed">
-                        典型原问：“{q.content}”
-                      </p>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#1E2B4A]">统一回复内容（可直采 AI 初稿微调）：</span>
-                        <button
-                          type="button"
-                          disabled={draftingQId === q.id}
-                          onClick={() => handleAIDraftReply(q.id)}
-                          className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-[#EFE8DC] hover:bg-[#E4D7C1] text-[#1E2B4A] cursor-pointer"
-                        >
-                          {draftingQId === q.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-3.5 h-3.5 text-[#B38B4D]" />
-                          )}
-                          <span>AI 拟定回复初稿</span>
-                        </button>
+                    {expanded && (
+                      <div className="glacial-card rounded-[15px] p-4 space-y-3">
+                        <div className="text-[12.5px] text-[#4B576C]">{q.content}</div>
+                        <textarea
+                          rows={3}
+                          value={draftVal}
+                          onChange={(e) => setReplyDrafts((p) => ({ ...p, [q.id]: e.target.value }))}
+                          placeholder="输入回复或点右侧 AI 拟稿…"
+                          className="w-full rounded-[10px] bg-[#F2F6FA] border border-slate-900/[0.08] p-3 text-[13px] outline-none focus:bg-white"
+                        />
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            disabled={draftingQId === q.id}
+                            onClick={() => handleDraftReply(q.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#E5EDF4] text-[#1C2436] text-[12px] font-medium hover:bg-[#DAE4EE] cursor-pointer"
+                          >
+                            {draftingQId === q.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            <span>AI 拟稿</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!draftVal.trim()}
+                            onClick={() => {
+                              onPublishClusterReply(q.id, draftVal.trim());
+                              showToast(`已群发至 ${q.upvotes} 位同问学生`);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-[8px] bg-[#141928] disabled:bg-[#C6D1DE] text-white text-[12px] font-medium cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>群发 ({q.upvotes})</span>
+                          </button>
+                        </div>
                       </div>
-
-                      <textarea
-                        rows={3}
-                        value={draftVal}
-                        onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                        placeholder="点击右上角「AI 拟定回复初稿」或直接输入回复…"
-                        className="w-full rounded-2xl bg-white border border-[#DFD5C5] p-3.5 text-xs sm:text-sm outline-none focus:border-[#1E2B4A]"
-                      />
-
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          disabled={!draftVal.trim()}
-                          onClick={() => {
-                            onPublishClusterReply(q.id, draftVal.trim());
-                            showToast(`已一键群发至全部 ${q.upvotes} 位同问学生的手机端！`);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#1E2B4A] disabled:bg-[#CFC7B9] text-[#FAF7F2] text-xs sm:text-sm font-medium cursor-pointer"
-                        >
-                          <Send className="w-3.5 h-3.5 text-[#D5B984]" />
-                          <span>一键群发给全部 {q.upvotes} 位同问同学</span>
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -643,433 +496,281 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
         </div>
       )}
 
-      {/* TAB 4: AI STUDIO — LECTURE NOTES -> INSTANT STUDENT MICRO-QUESTS */}
+      {/* TAB 4: LECTURE NOTES TO MICRO-QUESTS */}
       {activeTab === 'studio' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-5 editorial-card rounded-3xl p-5 sm:p-6 space-y-4 h-fit">
-            <div>
-              <span className="micro-label">AI QUEST FORGE · 讲义秒变碎片练习</span>
-              <h3 className="font-editorial text-2xl font-semibold text-[#1E2B4A] mt-1">
-                粘贴讲义要点，一键派发课下闯关
-              </h3>
-              <p className="text-xs sm:text-sm text-[#6A6258] mt-1.5 leading-relaxed">
-                老师不用手工编题库。丢进本周 PPT 提纲，AI 自动生成 2 道 3 分钟易错微闯关；确认后立刻同步到所有学生手机端。
-              </p>
-            </div>
+        <div className="space-y-4">
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">讲义出题</h1>
 
-            <div>
-              <label className="block text-xs font-medium text-[#1E2B4A] mb-1.5">归属核心知识点</label>
+          <div className="glacial-card rounded-[16px] p-4 sm:p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <select
                 value={studioKpId}
                 onChange={(e) => setStudioKpId(e.target.value)}
-                className="w-full rounded-xl bg-white border border-[#DFD5C5] px-3.5 py-2.5 text-sm outline-none"
+                className="rounded-[9px] bg-[#F2F6FA] border border-slate-900/[0.08] px-3 py-1.5 text-[12.5px] text-[#141928] outline-none"
               >
                 {knowledgePoints.map((kp) => (
                   <option key={kp.id} value={kp.id}>
-                    {kp.code} {kp.title}
+                    {kp.code} · {kp.title}
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                onClick={() =>
+                  setStudioNotes('大模型本质为条件概率自回归预测，工程中需结合上下文检索与明确拒答边界抑制幻觉。')
+                }
+                className="text-[12px] text-[#5B677B] hover:text-[#141928] cursor-pointer"
+              >
+                填入示例要点
+              </button>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-[#1E2B4A]">讲义/PPT 核心段落</label>
+            <textarea
+              rows={4}
+              value={studioNotes}
+              onChange={(e) => setStudioNotes(e.target.value)}
+              placeholder="粘贴讲义核心要点…"
+              className="w-full rounded-[11px] bg-[#F2F6FA] border border-slate-900/[0.08] p-3 text-[13px] outline-none focus:bg-white"
+            />
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={generatingQuests}
+                onClick={handleGenerateQuests}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[9px] bg-[#141928] text-white text-[12.5px] font-medium cursor-pointer"
+              >
+                {generatingQuests ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                <span>{generatingQuests ? '生成中' : '生成 2 道微测'}</span>
+              </button>
+            </div>
+          </div>
+
+          {generatedPreview.length > 0 && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[12px] font-medium text-[#5B677B]">预览 ({generatedPreview.length})</span>
                 <button
                   type="button"
-                  onClick={() =>
-                    setStudioNotes(
-                      '本周重点：大模型本质是基于上下文的概率自回归预测，容易在冷门事实上产生自信的幻觉。因此工程实践中需结合检索增强（RAG）、明确输出格式约束与允许模型拒答，而非单靠提高参数量解决可信度问题。'
-                    )
-                  }
-                  className="text-[11px] text-[#B38B4D] hover:underline cursor-pointer"
+                  onClick={() => {
+                    onPublishMicroQuests(generatedPreview);
+                    setGeneratedPreview([]);
+                    setStudioNotes('');
+                    showToast('已派发至学生端待办');
+                  }}
+                  className="px-3.5 py-1.5 rounded-[8px] bg-[#141928] text-white text-[12px] font-medium cursor-pointer"
                 >
-                  填入示例讲义片段
+                  发布至学生端
                 </button>
               </div>
-              <textarea
-                rows={5}
-                value={studioNotes}
-                onChange={(e) => setStudioNotes(e.target.value)}
-                placeholder="粘贴本节课的 PPT 要点、公式说明或常见易错案例…"
-                className="w-full rounded-2xl bg-white border border-[#DFD5C5] p-3.5 text-sm outline-none focus:border-[#1E2B4A]"
-              />
-            </div>
-
-            <button
-              type="button"
-              disabled={generatingQuests}
-              onClick={handleGenerateQuests}
-              className="w-full py-3 rounded-full bg-[#1E2B4A] text-[#FAF7F2] text-sm font-medium hover:bg-[#293B63] transition-colors cursor-pointer flex items-center justify-center gap-2"
-            >
-              {generatingQuests ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>AI 正在提炼易错点并生成微闯关…</span>
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4 text-[#D5B984]" />
-                  <span>AI 自动生成 2 道 3 分钟微闯关</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="lg:col-span-7 space-y-4">
-            {generatedPreview.length === 0 ? (
-              <div className="editorial-card rounded-3xl p-10 text-center bg-[#F6F1E7]/60">
-                <Sparkles className="w-8 h-8 text-[#B38B4D] mx-auto mb-3 opacity-80" />
-                <h4 className="font-editorial text-xl font-semibold text-[#1E2B4A]">
-                  生成的微闯关将在此预览
-                </h4>
-                <p className="text-xs sm:text-sm text-[#7A7267] mt-1.5 max-w-md mx-auto">
-                  点击左侧「AI 自动生成」，即可现场体验“从讲义到学生手机闯关卡片”的实时联动发布。
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-medium text-[#1E2B4A]">
-                    AI 已生成 {generatedPreview.length} 道候选微闯关（确认无误可一键发布）：
+              {generatedPreview.map((q) => (
+                <div key={q.id} className="glacial-card rounded-[14px] p-4 space-y-2 text-[12.5px]">
+                  <div className="flex items-center gap-2">
+                    <span className="id-chip px-2 py-0.5 rounded-[6px] text-[11px]">{q.code}</span>
+                    <span className="font-medium text-[#141928]">{q.title}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onPublishMicroQuests(generatedPreview);
-                      setGeneratedPreview([]);
-                      setStudioNotes('');
-                      showToast('已同步发布至学生端「3 分钟微闯关」！切回学生端即可立刻作答');
-                    }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#4B7056] text-white text-xs sm:text-sm font-medium hover:bg-[#3D5E47] cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>一键派发至全班学生端</span>
-                  </button>
+                  <div className="text-[#39455A]">{q.question}</div>
+                  <div className="text-[11.5px] text-[#2E7D5B]">答案：{q.options[q.correctIndex]}</div>
                 </div>
-
-                {generatedPreview.map((q, idx) => (
-                  <div key={q.id} className="editorial-card rounded-3xl p-5 space-y-2.5 bg-[#FAF7F2]">
-                    <div className="flex items-center justify-between text-xs text-[#7A7267]">
-                      <span className="font-semibold text-[#B38B4D]">候选微题 0{idx + 1}</span>
-                      <span>⏱ {q.durationMin} 分钟 · +{q.xpReward} pt</span>
-                    </div>
-                    <h4 className="font-editorial text-lg font-semibold text-[#1E2B4A]">{q.title}</h4>
-                    <p className="text-sm text-[#36322C]">{q.question}</p>
-                    <ul className="space-y-1 text-xs">
-                      {q.options.map((opt, oi) => (
-                        <li
-                          key={oi}
-                          className={`px-3 py-1.5 rounded-xl ${
-                            oi === q.correctIndex
-                              ? 'bg-[#4B7056]/12 text-[#2E4E38] font-medium'
-                              : 'bg-[#F4EFE5] text-[#645C52]'
-                          }`}
-                        >
-                          {String.fromCharCode(65 + oi)}. {opt} {oi === q.correctIndex ? '（正确答案）' : ''}
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="text-xs text-[#6E665C] pt-1">
-                      <strong>解析：</strong>
-                      {q.explanation}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* TAB 5: ONE-CLICK SCHOOL COMPLIANCE & SUMMARY REPORTS */}
+      {/* TAB 5: ONE-CLICK REPORTS */}
       {activeTab === 'reports' && (
-        <div className="space-y-6">
-          <EditorialSectionHeading
-            align="left"
-            english="ONE-CLICK DOSSIERS"
-            title="一键生成教研分析与留痕台账"
-            subtitle="学生日常课下研学自动静默留痕，期末/督导检查前点一下即出带真实数据的完整文档。"
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(
-              [
-                {
-                  key: 'mastery',
-                  num: '01',
-                  title: '班级学情达成度分析报告',
-                  desc: '自动统计各知识点均分、优秀率、AI 减负成效与下阶段教学建议。',
-                },
-                {
-                  key: 'support',
-                  num: '02',
-                  title: '学困生精准帮扶过程台账',
-                  desc: '自动整理红黄灯学生卡点、AI 提醒轨迹与老师私密跟进记录。',
-                },
-                {
-                  key: 'grades',
-                  num: '03',
-                  title: '过程性评价与平时分明细表',
-                  desc: '按运营端设定权重透明核算每位学生的任务率、打卡与平时表现分。',
-                },
-              ] as const
-            ).map((card) => (
-              <button
-                key={card.key}
-                type="button"
-                onClick={() => handleGenerateReport(card.key)}
-                className={`editorial-card rounded-3xl p-5 text-left transition-all cursor-pointer ${
-                  reportType === card.key && reportContent
-                    ? 'border-[#1E2B4A] bg-[#F3EEE4]'
-                    : 'bg-[#FAF7F2]'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="issue-numeral text-2xl text-[#B38B4D]">{card.num}</span>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#EFE8DC] text-[#1E2B4A]">
-                    一键生成
-                  </span>
-                </div>
-                <h4 className="font-editorial text-lg font-semibold text-[#1E2B4A]">{card.title}</h4>
-                <p className="text-xs text-[#6E665C] mt-1.5 leading-relaxed">{card.desc}</p>
-              </button>
-            ))}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">教研报告</h1>
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { key: 'mastery', label: '01 达成度' },
+                  { key: 'support', label: '02 帮扶台账' },
+                  { key: 'grades', label: '03 平时分' },
+                ] as const
+              ).map((r) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  onClick={() => handleGenerateReport(r.key)}
+                  className={`px-3 py-1.5 rounded-[9px] text-[12px] font-medium cursor-pointer transition-all ${
+                    reportType === r.key && reportContent
+                      ? 'bg-[#141928] text-white'
+                      : 'bg-white/75 text-[#3B475C] border border-white hover:bg-white'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="editorial-card rounded-3xl overflow-hidden bg-white">
-            <div className="px-5 py-3.5 bg-[#F4EFE5] border-b border-[#E4DCCE] flex flex-wrap items-center justify-between gap-2 no-print">
-              <span className="text-xs font-medium text-[#1E2B4A]">文档预览区（可直接复制粘贴至 Word 或打印存 PDF）</span>
-              {reportContent && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(reportContent);
-                      showToast('报告内容已复制到剪贴板！');
-                    }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-[#D8CCB8] text-xs text-[#1E2B4A] hover:bg-[#EFE8DC] cursor-pointer"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>复制全文</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#1E2B4A] text-white text-xs cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-[#D5B984]" />
-                    <span>打印 / 导出 PDF</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="p-6 sm:p-8 min-h-[260px]">
+          <div className="glacial-card rounded-[16px] overflow-hidden">
+            {reportContent && (
+              <div className="px-4 py-2.5 border-b border-slate-900/[0.06] flex justify-end gap-2 no-print">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(reportContent);
+                    showToast('已复制全文');
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[7px] bg-[#E5EDF4] text-[11.5px] text-[#1C2436] cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" /> 复制
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[7px] bg-[#141928] text-white text-[11.5px] cursor-pointer"
+                >
+                  <Printer className="w-3 h-3" /> 打印
+                </button>
+              </div>
+            )}
+            <div className="p-5 min-h-[260px]">
               {generatingReport ? (
-                <div className="py-14 flex flex-col items-center gap-3 text-[#7A7267] text-sm">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#B38B4D]" />
-                  <span>正在汇总全班最新研学数据并撰写规范报告…</span>
+                <div className="py-14 flex items-center justify-center gap-2 text-[12.5px] text-[#6B7689]">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>生成中…</span>
                 </div>
               ) : reportContent ? (
-                <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm text-[#2A2622] leading-relaxed">
+                <pre className="whitespace-pre-wrap font-sans text-[12.5px] text-[#222B3D] leading-relaxed">
                   {reportContent}
                 </pre>
               ) : (
-                <div className="py-12 text-center text-sm text-[#7A7267]">
-                  点击上方任意一张材料卡片，AI 将基于当前最新实时数据自动生成完整文档。
-                </div>
+                <div className="py-16 text-center text-[12.5px] text-[#7A869A]">选择上方任一报告类型即可实时生成</div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* STUDENT PANORAMA INSPECTOR DRAWER / MODAL */}
+      {/* STUDENT DOSSIER MODAL */}
       {selectedStudent && (
         <div
-          className="fixed inset-0 z-50 bg-[#1E2B4A]/45 backdrop-blur-xs flex items-end sm:items-center justify-end p-0 sm:p-4"
+          className="fixed inset-0 z-50 bg-[#141928]/30 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
           onClick={() => setSelectedStudentId(null)}
         >
           <div
-            className="w-full sm:max-w-lg bg-[#FAF7F2] rounded-t-3xl sm:rounded-3xl border border-[#E4DCCE] shadow-2xl max-h-[88vh] flex flex-col overflow-hidden"
+            className="w-full sm:max-w-md glacial-card rounded-t-[22px] sm:rounded-[22px] max-h-[85vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 navy-editorial-band flex items-center justify-between">
-              <div>
-                <div className="text-[10px] tracking-[0.2em] uppercase text-[#D5B984]">
-                  STUDENT DOSSIER · 单生全景档案
-                </div>
-                <h3 className="font-editorial text-2xl font-semibold mt-0.5">
-                  {selectedStudent.name}{' '}
-                  <span className="text-sm font-sans font-normal text-[#FAF7F2]/75">
-                    {selectedStudent.major} · {selectedStudent.studentNo}
-                  </span>
-                </h3>
+            <div className="px-5 py-3.5 border-b border-slate-900/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <StatusDot
+                  tone={
+                    selectedStudent.riskLevel === 'high_risk'
+                      ? 'risk'
+                      : selectedStudent.riskLevel === 'watch'
+                      ? 'warn'
+                      : 'ok'
+                  }
+                />
+                <span className="text-[15px] font-semibold text-[#141928]">{selectedStudent.name}</span>
+                <span className="text-[12px] text-[#7A869A]">{selectedStudent.major}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedStudentId(null)}
-                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                className="p-1 rounded-[7px] text-[#6B7689] hover:bg-slate-900/5 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-5">
-              {/* AI Diagnosis */}
-              <div className="rounded-2xl p-4 bg-[#F3EEE4] border border-[#E4DCCE] text-xs sm:text-sm space-y-1.5">
-                <div className="font-semibold text-[#1E2B4A] flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-[#B38B4D]" />
-                  <span>AI 一句话学情诊断</span>
+            <div className="p-5 overflow-y-auto space-y-4 text-[12.5px]">
+              <div className="grid grid-cols-3 gap-2 text-center tabular">
+                <div className="p-2.5 rounded-[11px] bg-[#EDF2F7]">
+                  <div className="text-[10.5px] text-[#7A869A]">预测</div>
+                  <div className="text-[17px] font-semibold text-[#141928]">{selectedStudent.predictedGrade}</div>
                 </div>
-                <p className="text-[#4F4840] leading-relaxed">{selectedStudent.aiDiagnosis}</p>
-                <div className="text-[11px] text-[#7A7267] pt-1">最近动态：{selectedStudent.recentActivity}</div>
-              </div>
-
-              {/* Quick Stats & Tags */}
-              <div className="grid grid-cols-3 gap-2.5 text-center">
-                <div className="p-3 rounded-2xl bg-white border border-[#E4DCCE]">
-                  <div className="text-[10px] text-[#7A7267]">预测平时分</div>
-                  <div className="font-editorial text-2xl font-semibold text-[#1E2B4A]">
-                    {selectedStudent.predictedGrade}
-                  </div>
+                <div className="p-2.5 rounded-[11px] bg-[#EDF2F7]">
+                  <div className="text-[10.5px] text-[#7A869A]">完成率</div>
+                  <div className="text-[17px] font-semibold text-[#141928]">{selectedStudent.taskCompletionRate}%</div>
                 </div>
-                <div className="p-3 rounded-2xl bg-white border border-[#E4DCCE]">
-                  <div className="text-[10px] text-[#7A7267]">任务完成率</div>
-                  <div className="font-editorial text-2xl font-semibold text-[#4B7056]">
-                    {selectedStudent.taskCompletionRate}%
-                  </div>
-                </div>
-                <div className="p-3 rounded-2xl bg-white border border-[#E4DCCE]">
-                  <div className="text-[10px] text-[#7A7267]">AI 温和提醒</div>
-                  <div className="font-editorial text-2xl font-semibold text-[#B38B4D]">
-                    {selectedStudent.nudgeCount} 次
-                  </div>
+                <div className="p-2.5 rounded-[11px] bg-[#EDF2F7]">
+                  <div className="text-[10.5px] text-[#7A869A]">已提醒</div>
+                  <div className="text-[17px] font-semibold text-[#141928]">{selectedStudent.nudgeCount}</div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {selectedStudent.tags.map((tag, i) => (
-                  <span key={i} className="px-2.5 py-0.5 rounded-full text-xs bg-[#EFE8DC] text-[#1E2B4A]">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
+              <div className="p-3 rounded-[11px] bg-[#F1F5F9] text-[#2C3649]">{selectedStudent.aiDiagnosis}</div>
 
-              {/* 6 KP Bars */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold text-[#1E2B4A]">六维知识点掌握明细</div>
+              <div className="space-y-1.5 tabular">
                 {knowledgePoints.map((kp) => {
                   const val = selectedStudent.mastery[kp.id] ?? 0;
                   return (
-                    <div key={kp.id} className="flex items-center gap-3 text-xs">
-                      <span className="w-36 truncate text-[#5E574D]">
+                    <div key={kp.id} className="flex items-center gap-2.5 text-[12px]">
+                      <span className="w-24 text-[#5A677C] truncate">
                         {kp.code} {kp.title}
                       </span>
-                      <div className="flex-1 h-2 rounded-full bg-[#ECE4D6] overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            val >= 80 ? 'bg-[#4B7056]' : val >= 65 ? 'bg-[#B87D3B]' : 'bg-[#A94B44]'
-                          }`}
-                          style={{ width: `${val}%` }}
-                        />
+                      <div className="flex-1 h-[3px] rounded-full bg-[#DCE4EC] overflow-hidden">
+                        <div className="h-full bg-[#141928]" style={{ width: `${val}%` }} />
                       </div>
-                      <span className="w-9 text-right font-medium text-[#1E2B4A]">{val}%</span>
+                      <span className="w-8 text-right font-medium text-[#141928]">{val}%</span>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Teacher Private Notes (Hidden from Students & Assistants) */}
-              <div className="space-y-2.5 pt-2 border-t border-[#E4DCCE]">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#1E2B4A] flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#B38B4D]" />
-                    <span>教师私密备注与谈话纪要（学生不可见）</span>
-                  </span>
+              <div className="space-y-2 pt-2 border-t border-slate-900/[0.06]">
+                <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-[#5A677C]">
+                  <Lock className="w-3 h-3" />
+                  <span>私密备注（仅教师可见）</span>
                 </div>
-                <div className="space-y-2">
-                  {selectedStudent.privateNotes.length === 0 ? (
-                    <p className="text-xs text-[#9A9282]">暂无备注，可随手记下该生特点或课后沟通情况。</p>
-                  ) : (
-                    selectedStudent.privateNotes.map((n) => (
-                      <div key={n.id} className="p-2.5 rounded-xl bg-white border border-[#E4DCCE] text-xs text-[#4F4840]">
-                        <span className="text-[#B38B4D] font-medium mr-2">[{n.date}]</span>
-                        {n.text}
-                      </div>
-                    ))
-                  )}
-                </div>
+                {selectedStudent.privateNotes.map((n) => (
+                  <div key={n.id} className="px-3 py-2 rounded-[9px] bg-[#F2F6FA] text-[12px] text-[#39455A]">
+                    <span className="text-[#818D9F] mr-1.5 tabular">{n.date}</span>
+                    {n.text}
+                  </div>
+                ))}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={newPrivateNote}
-                    onChange={(e) => setNewPrivateNote(e.target.value)}
-                    placeholder="随手记一句（如：基础弱但认真，下周课后鼓励）…"
-                    className="flex-1 rounded-full bg-white border border-[#DFD5C5] px-3.5 py-2 text-xs outline-none focus:border-[#1E2B4A]"
+                    value={noteInput}
+                    onChange={(e) => setNoteInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && noteInput.trim()) {
+                        onAddStudentNote(selectedStudent.id, noteInput.trim());
+                        setNoteInput('');
+                        showToast('已记录备注');
+                      }
+                    }}
+                    placeholder="添加备注…"
+                    className="flex-1 rounded-[9px] bg-[#F2F6FA] border border-slate-900/[0.08] px-3 py-1.5 text-[12.5px] outline-none focus:bg-white"
                   />
                   <button
                     type="button"
-                    disabled={!newPrivateNote.trim()}
+                    disabled={!noteInput.trim()}
                     onClick={() => {
-                      onAddStudentNote(selectedStudent.id, newPrivateNote.trim());
-                      setNewPrivateNote('');
-                      showToast('已保存教师私密备注');
+                      onAddStudentNote(selectedStudent.id, noteInput.trim());
+                      setNoteInput('');
+                      showToast('已记录备注');
                     }}
-                    className="px-4 py-2 rounded-full bg-[#1E2B4A] disabled:bg-[#CFC7B9] text-white text-xs cursor-pointer"
+                    className="px-3 py-1.5 rounded-[9px] bg-[#141928] disabled:bg-[#C6D1DE] text-white text-[12px] cursor-pointer"
                   >
-                    记录
+                    保存
                   </button>
                 </div>
               </div>
 
-              {/* Action: Trigger Gentle AI Nudge */}
               <button
                 type="button"
                 onClick={() => {
                   onTriggerGentleNudge(selectedStudent.id);
-                  showToast(`已委托 AI 课代表向 ${selectedStudent.name} 发送个性化 5 分钟拆解提醒，并同步至运营触达日志`);
+                  showToast(`已向 ${selectedStudent.name} 发送拆步提醒`);
                 }}
-                className="w-full py-2.5 rounded-full border border-[#B38B4D] text-[#8A652D] hover:bg-[#B38B4D] hover:text-white text-xs sm:text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-2 rounded-[10px] bg-[#E5EDF4] hover:bg-[#DAE4EE] text-[#141928] text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <BellRing className="w-4 h-4" />
-                <span>让 AI 课代表向该生发送一次“温柔拆步提醒”</span>
+                <Bell className="w-3.5 h-3.5" />
+                <span>委托 AI 发送拆步提醒</span>
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
-
-      {/* MOBILE FLOATING BOTTOM NAV FOR TEACHER */}
-      <nav
-        aria-label="教师端手机底部导航"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 no-print bg-[#FAF7F2]/95 backdrop-blur-lg border-t border-[#E4DCCE] shadow-[0_-6px_24px_-12px_rgba(30,43,74,0.14)] px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
-      >
-        <div className="grid grid-cols-5 gap-1">
-          {TEACHER_TABS.map((tab) => {
-            const active = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onChangeTab(tab.key)}
-                className={`relative flex flex-col items-center justify-center py-1.5 rounded-2xl transition-colors cursor-pointer ${
-                  active ? 'text-[#1E2B4A] bg-[#EFE8DC]/90 font-medium' : 'text-[#7A7267]'
-                }`}
-              >
-                <span className={active ? 'text-[#B38B4D]' : ''}>{tab.icon}</span>
-                <span className="text-[10px] mt-0.5">{tab.short}</span>
-                {tab.key === 'review' && pendingSubs.length > 0 && (
-                  <span className="absolute top-1 right-2.5 w-2 h-2 rounded-full bg-[#B38B4D]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-    </>
   );
 };

@@ -266,6 +266,7 @@ export async function generateMicroQuestsFromNotes(
         if (Array.isArray(arr) && arr.length > 0) {
           return arr.slice(0, 2).map((item, idx) => ({
             id: `mq-ai-${Date.now()}-${idx}`,
+            code: `MQ-0${6 + idx}`,
             kpId: kp.id,
             realm: kp.realm,
             title: item.title || `${kp.title} · 微测 ${idx + 1}`,
@@ -284,43 +285,45 @@ export async function generateMicroQuestsFromNotes(
     }
   }
 
-  await delay(850);
-  const snippet = notes.trim().slice(0, 32) || kp.summary.slice(0, 32);
+  await delay(650);
+  const snippet = notes.trim().slice(0, 28) || kp.summary.slice(0, 28);
   return [
     {
       id: `mq-ai-${Date.now()}-1`,
+      code: 'MQ-06',
       kpId: kp.id,
       realm: kp.realm,
-      title: `${kp.title} · 概念辨析微闯关`,
+      title: `${kp.title} · 概念辨析`,
       durationMin: 2,
       xpReward: 15,
-      question: `结合本节讲义要点（“${snippet}…”），以下关于「${kp.title}」的判断哪一项最准确？`,
+      question: `结合讲义要点（“${snippet}…”），关于「${kp.title}」判断最准确的是？`,
       options: [
-        `核心在于把握：${kp.keyTakeaway}`,
-        '只要盲目增加计算规模或记忆结论，无需关注前提约束',
-        '该概念仅在极端理想条件下成立，无法用于真实问题建模',
-        '该知识点与后续综合应用完全独立，无依赖关系',
+        kp.keyTakeaway,
+        '仅需扩大规模或记忆结论，无需检验前提约束',
+        '该概念仅在理想条件下成立，无法用于真实建模',
+        '该知识点与后续综合应用相互独立',
       ],
       correctIndex: 0,
-      explanation: `精准抓手：${kp.keyTakeaway}。常见误区提醒：${kp.commonPitfall}`,
+      explanation: `核心要点：${kp.keyTakeaway}`,
       isTeacherPublished: true,
     },
     {
       id: `mq-ai-${Date.now()}-2`,
+      code: 'MQ-07',
       kpId: kp.id,
       realm: kp.realm,
-      title: `${kp.title} · 易错反例速诊`,
-      durationMin: 3,
+      title: `${kp.title} · 边界排查`,
+      durationMin: 2,
       xpReward: 20,
-      question: `在课下作业与实操中，针对「${kp.title}」最容易出现哪类典型偏差？`,
+      question: `课下实操中，针对「${kp.title}」最需防范的误区是？`,
       options: [
-        '忽略模型或公式的适用边界，直接套用表面特征',
-        `落入本节高频误区：${kp.commonPitfall}`,
-        '将定性分析与定量推导混为一谈',
-        '以上三项在实战中均需警惕，其中最核心的是验证前提假设',
+        '忽视模型适用边界，套用表面特征',
+        kp.commonPitfall,
+        '混淆定性描述与定量推导',
+        '以上均需警惕，核心在于先验证前提假设',
       ],
       correctIndex: 3,
-      explanation: '大学阶段重在批判性检验前提与反例：把易错点前置检查，能避开 80% 的无谓丢分。',
+      explanation: '先检验前提与边界反例，可规避大部分无谓偏差。',
       isTeacherPublished: true,
     },
   ];

@@ -1,149 +1,150 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Cormorant Garamond", "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
-  --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-  --color-ivory: #FAF7F2;
-  --color-vellum: #F3EEE4;
-  --color-sand: #EFE8DC;
-  --color-navy: #1E2B4A;
-  --color-navy-deep: #151F38;
-  --color-gold: #B38B4D;
-  --color-gold-light: #D5B984;
-  --color-taupe: #7A7267;
-  --color-taupe-light: #9A9282;
-  --color-hairline: #E4DCCE;
-  --color-sage: #4B7056;
-  --color-amber-warm: #B87D3B;
-  --color-terracotta: #A94B44;
-  --color-olive-ink: #55503B;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
 @layer base {
   html {
-    scroll-behavior: smooth;
     font-family: var(--font-sans);
-    background-color: #FAF7F2;
-    color: #1E2B4A;
+    color: #141928;
+    background: #DCE5EE;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    background-color: #FAF7F2;
-    color: #1E2B4A;
+    min-height: 100vh;
+    background: radial-gradient(120% 90% at 18% 8%, #EBF1F6 0%, #DAE3EC 48%, #CED9E4 100%);
+    color: #141928;
     overflow-x: hidden;
   }
 }
 
-/* Editorial Typography & Signature Details from Reference Images */
-.font-editorial {
-  font-family: "Cormorant Garamond", "Noto Serif SC", "Songti SC", Georgia, serif;
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
-.font-flourish {
-  font-family: "Cormorant Garamond", "Noto Serif SC", Georgia, serif;
-  font-style: italic;
+/* Main Frosted Application Window Shell */
+.app-shell {
+  background: linear-gradient(160deg, rgba(244, 248, 251, 0.94) 0%, rgba(235, 241, 246, 0.92) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 28px 70px -24px rgba(15, 23, 42, 0.16),
+    0 4px 18px -6px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(22px);
 }
 
-.micro-label {
-  font-family: var(--font-sans);
-  font-size: 0.6875rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #7A7267;
+/* Recessed Cool-Mist Sub-Pane (Planner / Workspace Panels) */
+.mist-pane {
+  background: linear-gradient(180deg, rgba(226, 234, 241, 0.62) 0%, rgba(221, 230, 238, 0.5) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.issue-numeral {
-  font-family: "Cormorant Garamond", Georgia, serif;
-  font-weight: 500;
-  line-height: 1;
-  color: #1E2B4A;
+/* Elevated Soft-White Tactile Widget (Clock, Calendar, Active Nav Card) */
+.glacial-card {
+  background: linear-gradient(180deg, #FAFBFD 0%, #F2F6FA 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 10px 26px -12px rgba(15, 23, 42, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
-/* Golden Arch Emblem Frame (Image 1 Signature) */
-.arch-frame {
-  border-radius: 999px 999px 6px 6px;
-  border: 1px solid rgba(179, 139, 77, 0.45);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(250, 247, 242, 0.3) 100%);
-  position: relative;
+.glacial-card-subtle {
+  background: rgba(250, 252, 254, 0.78);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2px 10px -6px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.arch-frame::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 999px 999px 4px 4px;
-  border: 1px solid rgba(179, 139, 77, 0.18);
-  pointer-events: none;
+.glacial-card-subtle:hover {
+  background: rgba(253, 254, 255, 0.94);
+  border-color: rgba(15, 23, 42, 0.1);
 }
 
-/* Editorial Card Surface */
-.editorial-card {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid #E4DCCE;
-  box-shadow: 0 8px 30px -16px rgba(30, 43, 74, 0.08);
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease, border-color 0.28s ease;
-}
-
-.editorial-card:hover {
-  border-color: rgba(179, 139, 77, 0.55);
-  box-shadow: 0 14px 36px -14px rgba(30, 43, 74, 0.13);
-}
-
-/* Subtle Atmospheric Card Bottom Fade (Image 1) */
-.realm-card-fade {
-  background: linear-gradient(
-    to top,
-    #F6F1E8 0%,
-    rgba(246, 241, 232, 0.94) 34%,
-    rgba(246, 241, 232, 0.45) 58%,
-    rgba(246, 241, 232, 0) 100%
+/* Signature Subtle Diagonal Micro-Hatch Row (From Reference HI-1 Row) */
+.hatched-row {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.62) 0px,
+    rgba(255, 255, 255, 0.62) 3px,
+    rgba(220, 229, 238, 0.42) 3px,
+    rgba(220, 229, 238, 0.42) 6px
   );
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.1);
 }
 
-/* Editorial Vertical Midnight-Navy Band (Image 2 Signature) */
-.navy-editorial-band {
-  background: linear-gradient(180deg, #1E2B4A 0%, #24355B 52%, #19243F 100%);
-  color: #FAF7F2;
+/* Recessed Minimal Input Bar (+ Add todo, press ENTER) */
+.recessed-input {
+  background: rgba(235, 241, 246, 0.55);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-/* Custom subtle scrollbars */
+.recessed-input:focus-within {
+  background: rgba(252, 253, 255, 0.92);
+  border-color: rgba(20, 25, 40, 0.28);
+  box-shadow: 0 0 0 3px rgba(20, 25, 40, 0.05);
+}
+
+/* Crisp Micro ID Chip ([✓ HI-1]) */
+.id-chip {
+  background: #FAFBFD;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: #2B3447;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Precision Custom Range Slider */
+input[type='range'].swiss-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: #CFD9E3;
+  outline: none;
+}
+
+input[type='range'].swiss-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: #141928;
+  border: 2px solid #FAFBFD;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+}
+
+/* Minimal Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #FAF7F2;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D8CEBC;
+  background: rgba(15, 23, 42, 0.14);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #B38B4D;
+  background: rgba(15, 23, 42, 0.26);
 }
 
-/* Safe area bottom padding for mobile floating nav */
-.pb-mobile-nav {
-  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+.pb-mobile-dock {
+  padding-bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
 }
 
-@keyframes softFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-.animate-soft-in {
-  animation: softFadeUp 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* Print styling for Teacher AI Reports */
 @media print {
   .no-print {
     display: none !important;

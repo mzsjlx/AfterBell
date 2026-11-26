@@ -1,4 +1,4 @@
-export type PortalRole = 'home' | 'student' | 'teacher' | 'ops';
+export type PortalRole = 'student' | 'teacher' | 'ops';
 
 export type RealmKey = 'foundation' | 'practice' | 'synthesis';
 
@@ -15,6 +15,7 @@ export interface KnowledgePoint {
 
 export interface MicroQuest {
   id: string;
+  code: string;
   kpId: string;
   realm: RealmKey;
   title: string;
@@ -31,6 +32,7 @@ export interface MicroQuest {
 
 export interface Assignment {
   id: string;
+  code: string;
   title: string;
   kpId: string;
   deadline: string;
@@ -64,6 +66,7 @@ export interface Submission {
 
 export interface QuestionItem {
   id: string;
+  code: string;
   kpId: string;
   clusterTitle: string;
   authorName: string;
@@ -95,7 +98,7 @@ export interface StudentProfile {
   taskCompletionRate: number;
   qaCount: number;
   riskLevel: 'safe' | 'watch' | 'high_risk';
-  mastery: Record<string, number>; // kpId -> 0..100
+  mastery: Record<string, number>;
   tags: string[];
   privateNotes: PrivateNote[];
   recentActivity: string;
@@ -105,13 +108,13 @@ export interface StudentProfile {
 
 export interface PerkItem {
   id: string;
+  code: string;
   title: string;
   subtitle: string;
   costPoints: number;
   stockLeft: number;
   limitPerTerm: number;
   redeemedByMe: number;
-  badgeLabel: string;
 }
 
 export type TutorPersona = 'gentle' | 'concise' | 'mentor';

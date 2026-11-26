@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import { INITIAL_STATE } from './data/initialData';
-import { HomePortal } from './components/HomePortal';
-import { Navbar } from './components/Navbar';
-import { OpsPortal, OpsTab } from './components/OpsPortal';
-import { StudentPortal, StudentTab } from './components/StudentPortal';
-import { TeacherPortal, TeacherTab } from './components/TeacherPortal';
-import { AIConfig, AppState, MicroQuest, OpsConfig, PerkItem, PortalRole, Submission, SubmissionStatus, TutorPersona } from './types';
+import { OpsPortal, OpsTab, getOpsNavItems } from './components/OpsPortal';
+import { StudentPortal, StudentTab, getStudentNavItems } from './components/StudentPortal';
+import { TeacherPortal, TeacherTab, getTeacherNavItems } from './components/TeacherPortal';
+import { WorkspaceShell } from './components/WorkspaceShell';
+import {
+  AIConfig,
+  AppState,
+  MicroQuest,
+  OpsConfig,
+  PerkItem,
+  PortalRole,
+  Submission,
+  SubmissionStatus,
+  TutorPersona,
+} from './types';
 
-const STORAGE_KEY = 'liminal_academy_ai_state_v1';
+const STORAGE_KEY = 'afterbell_minimal_state_v2';
 
 function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.students && parsed.knowledgePoints) {
+      if (parsed && parsed.students && parsed.knowledgePoints && parsed.microQuests?.[0]?.code) {
         return parsed;
       }
     }
@@ -27,9 +35,9 @@ function loadState(): AppState {
 
 export default function App() {
   const [state, setState] = useState<AppState>(loadState);
-  const [role, setRole] = useState<PortalRole>('home');
-  const [studentTab, setStudentTab] = useState<StudentTab>('overview');
-  const [teacherTab, setTeacherTab] = useState<TeacherTab>('matrix');
+  const [role, setRole] = useState<PortalRole>('student');
+  const [studentTab, setStudentTab] = useState<StudentTab>('tasks');
+  const [teacherTab, setTeacherTab] = useState<TeacherTab>('review');
   const [opsTab, setOpsTab] = useState<OpsTab>('rules');
   const [toast, setToast] = useState<string | null>(null);
 
@@ -37,41 +45,27 @@ export default function App() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // ignore quota errors
+      // ignore
     }
   }, [state]);
 
   const showToast = (msg: string) => {
     setToast(msg);
     window.clearTimeout((window as unknown as { __toastTimer?: number }).__toastTimer);
-    (window as unknown as { __toastTimer?: number }).__toastTimer = window.setTimeout(() => {
-      setToast(null);
-    }, 3400);
-  };
-
-  const handleNavigate = (nextRole: PortalRole, subTab?: string) => {
-    setRole(nextRole);
-    if (nextRole === 'student' && subTab) setStudentTab(subTab as StudentTab);
-    if (nextRole === 'teacher' && subTab) setTeacherTab(subTab as TeacherTab);
-    if (nextRole === 'ops' && subTab) setOpsTab(subTab as OpsTab);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    (window as unknown as { __toastTimer?: number }).__toastTimer = window.setTimeout(() => setToast(null), 2600);
   };
 
   const handleResetDemo = () => {
     localStorage.removeItem(STORAGE_KEY);
     setState(INITIAL_STATE);
-    showToast('已恢复初始演示数据');
+    showToast('已重置演示数据');
   };
 
-  // --- Student Actions ---
+  // Student Actions
   const handleCompleteQuest = (questId: string, selectedIndex: number, isCorrect: boolean) => {
     setState((prev) => {
       const target = prev.microQuests.find((q) => q.id === questId);
       if (!target || target.completed) return prev;
-      const gainPoints = isCorrect ? target.xpReward : 8;
-      const gainMastery = isCorrect ? 10 : 4;
-      const gainGrade = isCorrect ? 2 : 1;
-
       return {
         ...prev,
         microQuests: prev.microQuests.map((q) =>
@@ -79,14 +73,16 @@ export default function App() {
         ),
         students: prev.students.map((st) => {
           if (st.id !== prev.currentStudentId) return st;
-          const nextMasteryVal = Math.min(100, (st.mastery[target.kpId] ?? 60) + gainMastery);
           return {
             ...st,
-            points: st.points + gainPoints,
-            predictedGrade: Math.min(100, st.predictedGrade + gainGrade),
+            points: st.points + (isCorrect ? target.xpReward : 8),
+            predictedGrade: Math.min(100, st.predictedGrade + (isCorrect ? 2 : 1)),
             taskCompletionRate: Math.min(100, st.taskCompletionRate + 3),
-            mastery: { ...st.mastery, [target.kpId]: nextMasteryVal },
-            recentActivity: `刚刚完成了微闯关「${target.title}」`,
+            mastery: {
+              ...st.mastery,
+              [target.kpId]: Math.min(100, (st.mastery[target.kpId] ?? 60) + (isCorrect ? 10 : 4)),
+            },
+            recentActivity: `完成 ${target.code}`,
           };
         }),
       };
@@ -113,23 +109,13 @@ export default function App() {
     setState((prev) => ({
       ...prev,
       submissions: [sub, ...prev.submissions],
-      students: prev.students.map((st) =>
-        st.id === sub.studentId
-          ? {
-              ...st,
-              recentActivity: `刚刚提交了课下作业（AI 初评 ${sub.aiScore} 分）`,
-            }
-          : st
-      ),
     }));
   };
 
   const handleVerifySubmission = (subId: string, passed: boolean) => {
     setState((prev) => ({
       ...prev,
-      submissions: prev.submissions.map((s) =>
-        s.id === subId ? { ...s, verificationPassed: passed } : s
-      ),
+      submissions: prev.submissions.map((s) => (s.id === subId ? { ...s, verificationPassed: passed } : s)),
       students: passed
         ? prev.students.map((st) =>
             st.id === prev.currentStudentId
@@ -160,17 +146,19 @@ export default function App() {
     setState((prev) => {
       const stu = prev.students.find((s) => s.id === prev.currentStudentId) || prev.students[0];
       const kp = prev.knowledgePoints.find((k) => k.id === kpId);
+      const nextCode = `QA-0${prev.questions.length + 1}`;
       const newQ = {
         id: `q-${Date.now()}`,
+        code: nextCode,
         kpId,
-        clusterTitle: content.slice(0, 22) + (content.length > 22 ? '…' : ''),
-        authorName: isAnonymous ? '匿名研学者' : stu.name,
+        clusterTitle: content.slice(0, 18) + (content.length > 18 ? '…' : ''),
+        authorName: isAnonymous ? '匿名' : stu.name,
         isAnonymous,
         content,
         upvotes: 1,
         upvotedByMe: true,
         status: 'open' as const,
-        aiDraftReply: `围绕「${kp?.title || '本节重点'}」，建议先抓核心前提：${kp?.keyTakeaway || '梳理输入输出边界'}，并对照避坑点：${kp?.commonPitfall || '避免机械套用公式'}。老师稍后将统一补充讲解。`,
+        aiDraftReply: kp ? `核心要点：${kp.keyTakeaway}。注意避坑：${kp.commonPitfall}` : '已记录，待教师统一回复。',
         studentConfirmed: 'pending' as const,
         createdAt: '刚刚',
       };
@@ -214,16 +202,14 @@ export default function App() {
     });
   };
 
-  // --- Teacher Actions ---
+  // Teacher Actions
   const handleBatchApproveNormal = () => {
-    const count = state.submissions.filter(
-      (s) => s.status === 'pending_review' && s.aiFlag === 'normal'
-    ).length;
+    const count = state.submissions.filter((s) => s.status === 'pending_review' && s.aiFlag === 'normal').length;
     setState((prev) => ({
       ...prev,
       submissions: prev.submissions.map((s) =>
         s.status === 'pending_review' && s.aiFlag === 'normal'
-          ? { ...s, status: 'approved' as SubmissionStatus, teacherComment: 'AI 初审通过，教师已批量确认' }
+          ? { ...s, status: 'approved' as SubmissionStatus, teacherComment: '常规项批量通过' }
           : s
       ),
     }));
@@ -243,9 +229,7 @@ export default function App() {
     setState((prev) => ({
       ...prev,
       questions: prev.questions.map((q) =>
-        q.id === qId
-          ? { ...q, officialReply: reply, status: 'teacher_answered', studentConfirmed: 'pending' }
-          : q
+        q.id === qId ? { ...q, officialReply: reply, status: 'teacher_answered', studentConfirmed: 'pending' } : q
       ),
     }));
   };
@@ -273,10 +257,10 @@ export default function App() {
         nudgeLogs: [
           {
             id: `log-${Date.now()}`,
-            timestamp: `今天 ${now}`,
+            timestamp: now,
             studentName: target.name,
             stage: 'gentle_ai',
-            message: '教师手动触发 AI 温柔拆步卡片，已生成 5 分钟极简首步引导发送至该生手机端。',
+            message: '教师触发 AI 首步拆解提醒。',
           },
           ...prev.nudgeLogs,
         ],
@@ -285,39 +269,26 @@ export default function App() {
   };
 
   const handlePublishMicroQuests = (quests: MicroQuest[]) => {
-    setState((prev) => ({
-      ...prev,
-      microQuests: [...quests, ...prev.microQuests],
-    }));
+    setState((prev) => ({ ...prev, microQuests: [...quests, ...prev.microQuests] }));
   };
 
-  // --- Ops Actions ---
-  const handleUpdateOpsConfig = (next: OpsConfig) => {
-    setState((prev) => ({ ...prev, opsConfig: next }));
-  };
-
-  const handleUpdateAIConfig = (next: AIConfig) => {
-    setState((prev) => ({ ...prev, aiConfig: next }));
-  };
+  // Ops Actions
+  const handleUpdateOpsConfig = (next: OpsConfig) => setState((prev) => ({ ...prev, opsConfig: next }));
+  const handleUpdateAIConfig = (next: AIConfig) => setState((prev) => ({ ...prev, aiConfig: next }));
 
   const handleRunAutoSweep = () => {
     const atRisk = state.students.filter((s) => s.riskLevel !== 'safe');
     const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     setState((prev) => ({
       ...prev,
-      students: prev.students.map((s) =>
-        s.riskLevel !== 'safe' ? { ...s, nudgeCount: s.nudgeCount + 1 } : s
-      ),
+      students: prev.students.map((s) => (s.riskLevel !== 'safe' ? { ...s, nudgeCount: s.nudgeCount + 1 } : s)),
       nudgeLogs: [
         ...atRisk.map((st, idx) => ({
           id: `log-${Date.now()}-${idx}`,
-          timestamp: `今天 ${now}`,
+          timestamp: now,
           studentName: st.name,
           stage: (st.riskLevel === 'high_risk' ? 'teacher_alert' : 'gentle_ai') as 'teacher_alert' | 'gentle_ai',
-          message:
-            st.riskLevel === 'high_risk'
-              ? `自动巡检触发：当前预测 ${st.predictedGrade} 分，已同步派发 3 分钟微任务并将帮扶卡片置顶于教师端。`
-              : `自动巡检温和触达：已推送对应薄弱考点的 2 分钟自测与 AI 引导入口。`,
+          message: st.riskLevel === 'high_risk' ? `预测 ${st.predictedGrade}，已置顶预警。` : '已发送薄弱点微测提醒。',
         })),
         ...prev.nudgeLogs,
       ],
@@ -332,19 +303,46 @@ export default function App() {
     }));
   };
 
+  // Shell configuration per role
+  const shellConfig =
+    role === 'student'
+      ? {
+          plannerTitle: '研学计划',
+          navItems: getStudentNavItems(state),
+          activeTab: studentTab,
+          onChangeTab: (k: string) => setStudentTab(k as StudentTab),
+          markedDays: [18, 22, 24, 29],
+        }
+      : role === 'teacher'
+      ? {
+          plannerTitle: '教师工作台',
+          navItems: getTeacherNavItems(state),
+          activeTab: teacherTab,
+          onChangeTab: (k: string) => setTeacherTab(k as TeacherTab),
+          markedDays: [17, 21, 25, 29],
+        }
+      : {
+          plannerTitle: '运行配置',
+          navItems: getOpsNavItems(state),
+          activeTab: opsTab,
+          onChangeTab: (k: string) => setOpsTab(k as OpsTab),
+          markedDays: [15, 26],
+        };
+
   return (
-    <div className="min-h-screen bg-[#FAF7F2] text-[#1E2B4A] flex flex-col">
-      <Navbar
+    <>
+      <WorkspaceShell
         role={role}
-        onChangeRole={(r) => handleNavigate(r)}
-        aiConfig={state.aiConfig}
+        onChangeRole={setRole}
+        plannerTitle={shellConfig.plannerTitle}
+        navItems={shellConfig.navItems}
+        activeTab={shellConfig.activeTab}
+        onChangeTab={shellConfig.onChangeTab}
         courseTitle={state.opsConfig.courseTitle}
+        aiConfig={state.aiConfig}
+        markedDays={shellConfig.markedDays}
         onResetDemo={handleResetDemo}
-      />
-
-      <main className="flex-1">
-        {role === 'home' && <HomePortal state={state} onNavigate={handleNavigate} />}
-
+      >
         {role === 'student' && (
           <StudentPortal
             state={state}
@@ -382,7 +380,6 @@ export default function App() {
           <OpsPortal
             state={state}
             activeTab={opsTab}
-            onChangeTab={setOpsTab}
             onUpdateOpsConfig={handleUpdateOpsConfig}
             onUpdateAIConfig={handleUpdateAIConfig}
             onRunAutoSweep={handleRunAutoSweep}
@@ -390,17 +387,16 @@ export default function App() {
             showToast={showToast}
           />
         )}
-      </main>
+      </WorkspaceShell>
 
-      {/* Editorial Floating Toast */}
+      {/* Whisper-quiet Obsidian Toast */}
       {toast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 no-print px-4 w-full max-w-md pointer-events-none">
-          <div className="bg-[#1E2B4A] text-[#FAF7F2] px-4 py-3 rounded-2xl shadow-xl border border-[#D5B984]/40 text-xs sm:text-sm flex items-center gap-2.5 animate-soft-in">
-            <CheckCircle2 className="w-4 h-4 text-[#D5B984] shrink-0" />
-            <span className="leading-snug">{toast}</span>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 no-print pointer-events-none px-4">
+          <div className="bg-[#141928] text-white px-4 py-2 rounded-[11px] shadow-lg text-[12.5px] font-medium">
+            {toast}
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
