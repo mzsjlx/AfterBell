@@ -9,7 +9,7 @@
   html {
     font-family: var(--font-sans);
     color: #141928;
-    background: #DCE5EE;
+    background: #B8C9D9;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
@@ -17,7 +17,14 @@
 
   body {
     min-height: 100vh;
-    background: radial-gradient(120% 90% at 18% 8%, #EBF1F6 0%, #DAE3EC 48%, #CED9E4 100%);
+    /* Deep atmospheric glacier-blue & pearlescent mist backdrop so translucent glass genuinely refracts light */
+    background:
+      radial-gradient(62% 54% at 14% 12%, rgba(249, 252, 255, 0.92) 0%, rgba(235, 243, 250, 0.55) 42%, transparent 74%),
+      radial-gradient(58% 62% at 88% 8%, rgba(149, 174, 198, 0.72) 0%, rgba(176, 198, 217, 0.32) 48%, transparent 78%),
+      radial-gradient(66% 58% at 10% 88%, rgba(142, 169, 194, 0.78) 0%, rgba(178, 199, 218, 0.36) 52%, transparent 80%),
+      radial-gradient(52% 56% at 85% 86%, rgba(226, 237, 247, 0.82) 0%, rgba(190, 209, 226, 0.42) 55%, transparent 82%),
+      linear-gradient(135deg, #CAD9E6 0%, #BCCEDC 46%, #B1C5D7 100%);
+    background-attachment: fixed;
     color: #141928;
     overflow-x: hidden;
   }
@@ -27,80 +34,233 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Main Frosted Application Window Shell */
+/* Subtle tactile frosted-glass mineral grain (Apple bead-blasted glass finish) */
+.glass-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  mix-blend-mode: overlay;
+  opacity: 0.075;
+}
+
+/* Layer 1: Main Apple Liquid-Glass Application Shell */
 .app-shell {
-  background: linear-gradient(160deg, rgba(244, 248, 251, 0.94) 0%, rgba(235, 241, 246, 0.92) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.88);
+  position: relative;
+  background: linear-gradient(
+    142deg,
+    rgba(247, 251, 255, 0.74) 0%,
+    rgba(232, 241, 249, 0.56) 46%,
+    rgba(216, 229, 241, 0.52) 100%
+  );
+  border: 1.5px solid rgba(255, 255, 255, 0.86);
   box-shadow:
-    0 28px 70px -24px rgba(15, 23, 42, 0.16),
-    0 4px 18px -6px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(22px);
+    0 36px 96px -24px rgba(24, 48, 76, 0.28),
+    0 12px 32px -12px rgba(24, 48, 76, 0.12),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.96),
+    inset 1.5px 0 0 rgba(255, 255, 255, 0.74),
+    inset 0 -1px 0 rgba(164, 188, 212, 0.32);
+  backdrop-filter: blur(40px) saturate(165%);
+  -webkit-backdrop-filter: blur(40px) saturate(165%);
 }
 
-/* Recessed Cool-Mist Sub-Pane (Planner / Workspace Panels) */
+/* Layer 2: Frosted Luminous Slim Icon Rail */
+.glass-rail {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.84) 0%,
+    rgba(247, 251, 255, 0.70) 58%,
+    rgba(239, 246, 252, 0.62) 100%
+  );
+  border-right: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset -1px 0 0 rgba(24, 48, 76, 0.04);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+}
+
+/* Layer 3: Recessed Translucent Glass Pane with Top-to-Bottom Dissolving Veil (Reference Planner / Todo's) */
 .mist-pane {
-  background: linear-gradient(180deg, rgba(226, 234, 241, 0.62) 0%, rgba(221, 230, 238, 0.5) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
-}
-
-/* Elevated Soft-White Tactile Widget (Clock, Calendar, Active Nav Card) */
-.glacial-card {
-  background: linear-gradient(180deg, #FAFBFD 0%, #F2F6FA 100%);
-  border: 1px solid rgba(255, 255, 255, 0.92);
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(196, 213, 229, 0.44) 0%,
+    rgba(209, 223, 236, 0.30) 45%,
+    rgba(225, 236, 245, 0.14) 100%
+  );
   box-shadow:
-    0 10px 26px -12px rgba(15, 23, 42, 0.12),
-    0 2px 6px -2px rgba(15, 23, 42, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 1);
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    inset 0 2px 14px rgba(28, 54, 84, 0.035);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
 }
 
+/* Fading specular glass border: luminous top rim gently dissolving downward */
+.mist-pane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(255, 255, 255, 0.36) 52%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Layer 4: Levitating Milky-Glass Tactile Card (Clock, Active Nav Pill, Expanded Focus Cards) */
+.glacial-card {
+  position: relative;
+  background: linear-gradient(
+    148deg,
+    rgba(255, 255, 255, 0.78) 0%,
+    rgba(244, 249, 254, 0.56) 54%,
+    rgba(231, 241, 250, 0.44) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.80);
+  box-shadow:
+    0 20px 44px -16px rgba(24, 48, 78, 0.19),
+    0 6px 16px -6px rgba(24, 48, 78, 0.09),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.98),
+    inset 1px 0 0 rgba(255, 255, 255, 0.68),
+    inset 0 -1px 0 rgba(145, 174, 202, 0.24);
+  backdrop-filter: blur(24px) saturate(155%);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, background 0.24s ease;
+}
+
+/* Dissolving Bottom Frosted Glass Card (Matches Reference Calendar Widget) */
+.glacial-card-fade {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.74) 0%,
+    rgba(244, 250, 255, 0.50) 56%,
+    rgba(234, 243, 251, 0.24) 100%
+  );
+  box-shadow:
+    0 18px 38px -18px rgba(24, 48, 78, 0.15),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+}
+
+.glacial-card-fade::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.45) 60%,
+    rgba(255, 255, 255, 0.06) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Translucent Glass Sliver Row (Inactive Task Rows / KPI Tiles) */
 .glacial-card-subtle {
-  background: rgba(250, 252, 254, 0.78);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  box-shadow: 0 2px 10px -6px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: linear-gradient(
+    138deg,
+    rgba(255, 255, 255, 0.54) 0%,
+    rgba(240, 247, 253, 0.34) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  box-shadow:
+    0 6px 18px -10px rgba(24, 48, 78, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .glacial-card-subtle:hover {
-  background: rgba(253, 254, 255, 0.94);
-  border-color: rgba(15, 23, 42, 0.1);
-}
-
-/* Signature Subtle Diagonal Micro-Hatch Row (From Reference HI-1 Row) */
-.hatched-row {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.62) 0px,
-    rgba(255, 255, 255, 0.62) 3px,
-    rgba(220, 229, 238, 0.42) 3px,
-    rgba(220, 229, 238, 0.42) 6px
+  background: linear-gradient(
+    138deg,
+    rgba(255, 255, 255, 0.74) 0%,
+    rgba(244, 249, 254, 0.52) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.1);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 12px 26px -12px rgba(24, 48, 78, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
 }
 
-/* Recessed Minimal Input Bar (+ Add todo, press ENTER) */
+/* Signature Translucent Diagonal Etched-Glass Active Row (Reference HI-1) */
+.hatched-row {
+  background-image:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.42) 0px,
+      rgba(255, 255, 255, 0.42) 2.5px,
+      rgba(198, 215, 232, 0.24) 2.5px,
+      rgba(198, 215, 232, 0.24) 5px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.56) 0%, rgba(232, 242, 251, 0.34) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 10px 24px -12px rgba(24, 48, 78, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Laser-Etched Transparent Recessed Input Groove (+ Add todo, press ENTER) */
 .recessed-input {
-  background: rgba(235, 241, 246, 0.55);
-  border: 1px solid rgba(15, 23, 42, 0.09);
-  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(192, 210, 227, 0.20) 0%,
+    rgba(220, 233, 244, 0.16) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  box-shadow:
+    inset 0 1.5px 3px rgba(24, 48, 78, 0.07),
+    0 1px 0 rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .recessed-input:focus-within {
-  background: rgba(252, 253, 255, 0.92);
-  border-color: rgba(20, 25, 40, 0.28);
-  box-shadow: 0 0 0 3px rgba(20, 25, 40, 0.05);
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 10px 26px -12px rgba(24, 48, 78, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
 }
 
-/* Crisp Micro ID Chip ([✓ HI-1]) */
+/* Floating Luminous Glass ID Chip ([✓ HI-1]) */
 .id-chip {
-  background: #FAFBFD;
-  border: 1px solid rgba(15, 23, 42, 0.09);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  color: #2B3447;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(238, 246, 253, 0.70) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 3px 8px -3px rgba(24, 48, 78, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  color: #263145;
   font-variant-numeric: tabular-nums;
+}
+
+/* Frosted Translucent Glass Pill Track (Segmented Controls) */
+.glass-track {
+  background: linear-gradient(180deg, rgba(190, 208, 225, 0.42) 0%, rgba(212, 226, 239, 0.34) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 1px 2px rgba(24, 48, 78, 0.06);
+  backdrop-filter: blur(14px);
+}
+
+/* Translucent Glass Inner Well (for text blocks / modal content wells) */
+.glass-well {
+  background: linear-gradient(180deg, rgba(210, 224, 237, 0.32) 0%, rgba(232, 241, 249, 0.24) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 2px rgba(24, 48, 78, 0.04);
 }
 
 /* Precision Custom Range Slider */
@@ -109,7 +269,7 @@ input[type='range'].swiss-range {
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  background: #CFD9E3;
+  background: rgba(154, 177, 199, 0.55);
   outline: none;
 }
 
@@ -120,8 +280,8 @@ input[type='range'].swiss-range::-webkit-slider-thumb {
   height: 15px;
   border-radius: 999px;
   background: #141928;
-  border: 2px solid #FAFBFD;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 3px 8px rgba(20, 34, 56, 0.3);
   cursor: pointer;
 }
 
@@ -134,11 +294,11 @@ input[type='range'].swiss-range::-webkit-slider-thumb {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.14);
+  background: rgba(24, 48, 78, 0.16);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.26);
+  background: rgba(24, 48, 78, 0.28);
 }
 
 .pb-mobile-dock {

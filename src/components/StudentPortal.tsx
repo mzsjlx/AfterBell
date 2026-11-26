@@ -202,19 +202,19 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 text-[12px] tabular">
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/75 border border-white text-[#141928] font-medium">
+              <span className="px-2.5 py-1 rounded-[9px] id-chip text-[#141928] font-medium">
                 预测 {student.predictedGrade}
               </span>
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/55 text-[#4C586D]">
+              <span className="px-2.5 py-1 rounded-[9px] bg-white/40 border border-white/70 text-[#3F4D63] backdrop-blur-md">
                 连胜 {student.streakDays}d
               </span>
-              <span className="px-2.5 py-1 rounded-[8px] bg-white/55 text-[#4C586D]">
+              <span className="px-2.5 py-1 rounded-[9px] bg-white/40 border border-white/70 text-[#3F4D63] backdrop-blur-md">
                 {student.points} pt
               </span>
               <button
                 type="button"
                 onClick={handleOpenLifesaver}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] bg-[#141928] text-white font-medium hover:opacity-90 transition-opacity cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[9px] bg-[#141928] text-white font-medium shadow-[0_6px_16px_-6px_rgba(20,25,40,0.45)] hover:opacity-90 transition-opacity cursor-pointer"
               >
                 <Sparkles className="w-3 h-3" />
                 <span>考前急救单</span>
@@ -412,7 +412,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         <div className="flex flex-col h-[540px] lg:h-[640px]">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-900/[0.06]">
             <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">AI 助教</h1>
-            <div className="inline-flex p-0.5 rounded-[9px] bg-[#D9E2EC]/80">
+            <div className="inline-flex p-0.5 rounded-[10px] glass-track">
               {(
                 [
                   { key: 'gentle', label: '引导' },
@@ -664,7 +664,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">
               {communityMode === 'qa' ? '同问墙' : '积分特权'}
             </h1>
-            <div className="inline-flex p-0.5 rounded-[9px] bg-[#D9E2EC]/80">
+            <div className="inline-flex p-0.5 rounded-[10px] glass-track">
               <button
                 type="button"
                 onClick={() => setCommunityMode('qa')}
@@ -764,7 +764,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         {expanded && (
                           <div className="glacial-card rounded-[14px] p-4 space-y-2.5 text-[12.5px]">
                             <div className="text-[#4B576C]">{q.content}</div>
-                            <div className="p-3 rounded-[10px] bg-[#EDF2F7] text-[#1F2739] leading-relaxed">
+                            <div className="p-3 rounded-[10px] glass-well text-[#1F2739] leading-relaxed">
                               <span className="text-[11px] font-semibold text-[#5A677C] block mb-1">
                                 {q.officialReply ? '教师统一回复' : 'AI 参考思路'}
                               </span>

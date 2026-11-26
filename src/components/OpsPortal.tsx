@@ -332,7 +332,7 @@ export const OpsPortal: React.FC<OpsPortalProps> = ({
           <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">模型直连</h1>
 
           <div className="glacial-card rounded-[16px] p-4 sm:p-5 space-y-4">
-            <div className="inline-flex p-0.5 rounded-[9px] bg-[#D9E2EC]/80">
+            <div className="inline-flex p-0.5 rounded-[10px] glass-track">
               <button
                 type="button"
                 onClick={() => setLocalAI({ ...localAI, mode: 'builtin' })}

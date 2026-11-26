@@ -187,7 +187,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
                 {sub.aiFlagReason}
               </div>
             )}
-            <div className="p-3 rounded-[11px] bg-[#F1F5F9] text-[#222B3D] leading-relaxed">{sub.content}</div>
+            <div className="p-3 rounded-[11px] glass-well text-[#222B3D] leading-relaxed">{sub.content}</div>
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-[#4D596E]">
               <span>亮点：{sub.aiStrengths.join('；')}</span>
               <span>待补：{sub.aiGaps.join('；')}</span>
@@ -314,7 +314,7 @@ export const TeacherPortal: React.FC<TeacherPortalProps> = ({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-[18px] font-semibold tracking-tight text-[#141928]">学情矩阵</h1>
-            <div className="inline-flex p-0.5 rounded-[9px] bg-[#D9E2EC]/80">
+            <div className="inline-flex p-0.5 rounded-[10px] glass-track">
               {(
                 [
                   { key: 'all', label: `全部 ${students.length}` },

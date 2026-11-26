@@ -55,11 +55,34 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const isLiveAI = aiConfig.mode === 'custom' && Boolean(aiConfig.apiKey.trim());
 
   return (
-    <div className="min-h-screen lg:py-5 lg:px-5 flex flex-col items-center">
+    <div className="relative min-h-screen lg:py-6 lg:px-6 flex flex-col items-center">
+      {/* Atmospheric Ambient Light Field behind the frosted glass shell */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
+        <div
+          className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full blur-[95px]"
+          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.88) 0%, rgba(226,238,249,0.2) 70%, transparent 100%)' }}
+        />
+        <div
+          className="absolute top-[12%] right-[-8%] w-[560px] h-[560px] rounded-full blur-[110px]"
+          style={{ background: 'radial-gradient(circle, rgba(132,163,194,0.58) 0%, rgba(168,195,219,0.2) 65%, transparent 100%)' }}
+        />
+        <div
+          className="absolute bottom-[-14%] left-[12%] w-[540px] h-[540px] rounded-full blur-[110px]"
+          style={{ background: 'radial-gradient(circle, rgba(126,158,190,0.56) 0%, rgba(188,210,230,0.18) 68%, transparent 100%)' }}
+        />
+        <div
+          className="absolute bottom-[8%] right-[14%] w-[420px] h-[420px] rounded-full blur-[90px]"
+          style={{ background: 'radial-gradient(circle, rgba(244,249,255,0.72) 0%, rgba(206,223,239,0.15) 70%, transparent 100%)' }}
+        />
+      </div>
+
       {/* Main Frosted Application Window */}
-      <div className="w-full max-w-[1380px] flex-1 lg:min-h-[calc(100vh-2.5rem)] app-shell lg:rounded-[24px] flex overflow-hidden">
+      <div className="w-full max-w-[1380px] flex-1 lg:min-h-[calc(100vh-3rem)] app-shell lg:rounded-[26px] flex overflow-hidden">
+        {/* Subtle micro frosted-glass surface grain */}
+        <div className="absolute inset-0 pointer-events-none glass-grain z-0" aria-hidden="true" />
+
         {/* DESKTOP FAR-LEFT SLIM ICON RAIL (Exact Reference Image Layout) */}
-        <aside className="hidden lg:flex flex-col items-center justify-between w-[62px] shrink-0 bg-[#F8FAFC]/92 border-r border-slate-900/[0.05] py-3.5 no-print">
+        <aside className="relative z-10 hidden lg:flex flex-col items-center justify-between w-[64px] shrink-0 glass-rail py-3.5 no-print">
           <div className="flex flex-col items-center gap-2.5">
             {/* Deep Obsidian Brand Mark Squircle */}
             <button
@@ -125,22 +148,22 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         </aside>
 
         {/* MAIN RIGHT INTERIOR */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="relative z-10 flex-1 flex flex-col min-w-0">
           {/* ULTRA-CLEAN TOP BAR (Matches "Floor Main" simplicity) */}
           <header className="h-14 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 no-print">
             <div className="flex items-center gap-3 min-w-0">
               {/* Mobile Brand Squircle */}
-              <div className="lg:hidden w-8 h-8 rounded-[9px] bg-[#141928] text-white flex items-center justify-center shrink-0">
+              <div className="lg:hidden w-8 h-8 rounded-[9px] bg-[#141928] text-white flex items-center justify-center shrink-0 shadow-sm">
                 <Layers className="w-4 h-4 stroke-[1.75]" />
               </div>
 
               <div className="flex items-center gap-2 text-[13px] min-w-0">
-                <span className="text-[#7A869A] hidden sm:inline">AfterBell</span>
+                <span className="text-[#6E7C91] hidden sm:inline">AfterBell</span>
                 <span className="font-semibold text-[#141928] truncate">{courseTitle}</span>
               </div>
 
-              {/* Minimal Segmented Role Switcher */}
-              <div className="ml-1 sm:ml-3 inline-flex items-center p-0.5 rounded-[10px] bg-[#DFE7F0]/80 border border-white/70">
+              {/* Minimal Frosted Glass Segmented Role Switcher */}
+              <div className="ml-1 sm:ml-3 inline-flex items-center p-0.5 rounded-[11px] glass-track">
                 {ROLES.map((r) => {
                   const active = role === r.key;
                   return (
@@ -150,8 +173,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                       onClick={() => onChangeRole(r.key)}
                       className={`px-2.5 sm:px-3 py-1 rounded-[8px] text-[12px] font-medium transition-all cursor-pointer ${
                         active
-                          ? 'bg-[#FAFBFD] text-[#141928] shadow-2xs'
-                          : 'text-[#637085] hover:text-[#141928]'
+                          ? 'bg-white/85 text-[#141928] shadow-[0_2px_8px_-2px_rgba(24,48,78,0.16)] border border-white'
+                          : 'text-[#59687E] hover:text-[#141928] border border-transparent'
                       }`}
                     >
                       {r.label}
@@ -245,10 +268,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         </div>
       </div>
 
-      {/* MOBILE PINNED FROSTED BOTTOM DOCK */}
+      {/* MOBILE PINNED FROSTED LIQUID-GLASS BOTTOM DOCK */}
       <nav
         aria-label="移动端视图导航"
-        className="lg:hidden fixed bottom-0 inset-x-0 z-40 no-print bg-[#F8FAFC]/96 backdrop-blur-xl border-t border-slate-900/[0.07] px-2 pt-1.5 pb-[calc(0.45rem+env(safe-area-inset-bottom,0px))]"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 no-print px-2.5 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]"
+        style={{
+          background: 'linear-gradient(180deg, rgba(246,250,255,0.72) 0%, rgba(232,241,250,0.84) 100%)',
+          backdropFilter: 'blur(28px) saturate(165%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(165%)',
+          borderTop: '1px solid rgba(255,255,255,0.82)',
+          boxShadow: '0 -10px 30px -12px rgba(24,48,78,0.16), inset 0 1px 0 rgba(255,255,255,0.92)',
+        }}
       >
         <div
           className="grid gap-1"
@@ -261,14 +291,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                 key={item.key}
                 type="button"
                 onClick={() => onChangeTab(item.key)}
-                className={`relative flex flex-col items-center justify-center py-1.5 rounded-[12px] transition-all cursor-pointer ${
-                  active ? 'bg-[#E2EAF3] text-[#141928] font-medium' : 'text-[#7A869A]'
+                className={`relative flex flex-col items-center justify-center py-1.5 rounded-[13px] transition-all cursor-pointer ${
+                  active
+                    ? 'bg-white/75 text-[#141928] font-medium shadow-[0_4px_12px_-4px_rgba(24,48,78,0.15)] border border-white/90'
+                    : 'text-[#637288] border border-transparent'
                 }`}
               >
                 <span>{item.icon}</span>
                 <span className="text-[10px] mt-0.5 leading-tight">{item.short}</span>
                 {item.count !== undefined && item.count > 0 && !active && (
-                  <span className="absolute top-1.5 right-3.5 w-1 h-1 rounded-full bg-[#647287]" />
+                  <span className="absolute top-1.5 right-3.5 w-1 h-1 rounded-full bg-[#5C6C82]" />
                 )}
               </button>
             );

@@ -156,7 +156,7 @@ export const MinimalCalendarWidget: React.FC<{
         </div>
       </div>
 
-      <div className="glacial-card rounded-[20px] p-3.5">
+      <div className="glacial-card-fade rounded-[22px] p-3.5">
         <div className="grid grid-cols-7 text-center text-[10px] font-medium text-[#7C8799] mb-2">
           {['一', '二', '三', '四', '五', '六', '日'].map((w) => (
             <div key={w} className="py-0.5">
